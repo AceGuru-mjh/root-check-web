@@ -10,6 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@3.4/dist/tailwind.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/animejs@4.1.0/lib/anime.umd.min.js"></script>
   <style>
     /* ============================================
        CSS VARIABLES
@@ -1987,6 +1988,47 @@
       color: #a5b4fc;
       overflow-x: auto;
     }
+
+    /* ============================================
+       ANIME.JS ENHANCEMENTS - Hero Particles
+    ============================================ */
+    #hero-particles {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      pointer-events: none;
+      z-index: 1;
+    }
+    .hero-particle {
+      position: absolute;
+      border-radius: 50%;
+      background: var(--cyber-cyan);
+      opacity: 0.3;
+    }
+
+    /* ============================================
+       ANIME.JS ENHANCEMENTS - Section Title Reveal
+    ============================================ */
+    .section-title.anime-reveal-ready {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+
+    /* ============================================
+       ANIME.JS ENHANCEMENTS - Tech Card Stagger
+    ============================================ */
+    .tech-card.anime-reveal-ready {
+      opacity: 0;
+      transform: scale(0.85) translateY(30px);
+    }
+
+    /* ============================================
+       ANIME.JS ENHANCEMENTS - Layer Card Slide
+    ============================================ */
+    .layer-card.anime-slide-ready {
+      opacity: 0;
+      transform: translateX(-60px);
+    }
   </style>
 </head>
 <body>
@@ -2086,6 +2128,7 @@
     ========================================== -->
     <section id="hero">
       <canvas id="hero-canvas"></canvas>
+      <div id="hero-particles"></div>
       <div class="hero-content">
         <h1 class="hero-title">APEX-ROOT</h1>
         <p class="hero-subtitle">Android 设备完整性评估系统</p>
@@ -3428,6 +3471,295 @@
           card.style.setProperty('--hy', hy + '%');
         });
       });
+
+    })();
+  </script>
+
+  <!-- ==========================================
+       ANIME.JS v4 ANIMATIONS
+  ========================================== -->
+  <script>
+    (function() {
+      'use strict';
+
+      // Wait for anime.js to be available
+      if (typeof anime === 'undefined') {
+        console.warn('anime.js not loaded, skipping animations');
+        return;
+      }
+
+      var animate = anime.animate || anime;
+      var stagger = anime.stagger || anime.stagger;
+      var createTimeline = anime.createTimeline || anime.timeline;
+
+      // ============================================
+      // Run all anime.js animations after loader finishes
+      // ============================================
+      function initAnimeAnimations() {
+        // ---- 1. HERO FLOATING PARTICLES ----
+        var particlesContainer = document.getElementById('hero-particles');
+        if (particlesContainer) {
+          // Generate 30 particles dynamically
+          for (var pi = 0; pi < 30; pi++) {
+            var particle = document.createElement('div');
+            particle.className = 'hero-particle';
+            var size = 2 + Math.random() * 4;
+            particle.style.width = size + 'px';
+            particle.style.height = size + 'px';
+            particle.style.left = Math.random() * 100 + '%';
+            particle.style.top = Math.random() * 100 + '%';
+            particlesContainer.appendChild(particle);
+          }
+
+          var heroParticles = document.querySelectorAll('.hero-particle');
+          animate(heroParticles, {
+            translateY: function() { return Math.floor(Math.random() * 61) - 30; },
+            translateX: function() { return Math.floor(Math.random() * 41) - 20; },
+            opacity: [0.2, 0.8],
+            scale: [0.5, 1.2],
+            duration: function() { return 3000 + Math.floor(Math.random() * 3001); },
+            delay: stagger(100),
+            loop: true,
+            alternate: true,
+            ease: 'easeInOutSine'
+          });
+        }
+
+        // ---- 2. HERO TITLE ENTRANCE TIMELINE ----
+        var heroContent = document.querySelector('.hero-content');
+        if (heroContent) {
+          var heroChildren = heroContent.querySelectorAll(':scope > *');
+          var heroTL = createTimeline({ autoplay: true });
+          heroTL.add(heroChildren[0] || {}, {
+            opacity: [0, 1],
+            translateY: [40, 0],
+            duration: 800,
+            ease: 'easeOutCubic'
+          });
+          if (heroChildren[1]) {
+            heroTL.add(heroChildren[1], {
+              opacity: [0, 1],
+              translateY: [30, 0],
+              duration: 700,
+              ease: 'easeOutCubic'
+            });
+          }
+          if (heroChildren[2]) {
+            heroTL.add(heroChildren[2], {
+              opacity: [0, 1],
+              translateY: [20, 0],
+              duration: 600,
+              ease: 'easeOutCubic'
+            });
+          }
+          if (heroChildren[3]) {
+            heroTL.add(heroChildren[3], {
+              opacity: [0, 1],
+              scale: [0.8, 1],
+              duration: 500,
+              ease: 'easeOutBack'
+            });
+          }
+        }
+
+        // ---- 3. LAYER CARD STAGGER ENTRANCE (Scroll-triggered) ----
+        var layerCards = document.querySelectorAll('.layer-card');
+        if (layerCards.length > 0) {
+          // Mark cards as ready for animation
+          layerCards.forEach(function(card) {
+            card.classList.add('anime-slide-ready');
+          });
+
+          var layerCardObserver = new IntersectionObserver(function(entries) {
+            entries.forEach(function(entry) {
+              if (entry.isIntersecting) {
+                animate(entry.target, {
+                  opacity: [0, 1],
+                  translateX: [-60, 0],
+                  duration: 700,
+                  ease: 'easeOutCubic'
+                });
+                entry.target.classList.remove('anime-slide-ready');
+                layerCardObserver.unobserve(entry.target);
+              }
+            });
+          }, { threshold: 0.2 });
+
+          // Use stagger delay by wrapping in a container observer
+          var layerTimeline = document.getElementById('layer-timeline');
+          if (layerTimeline) {
+            var layerTimelineObserver = new IntersectionObserver(function(entries) {
+              entries.forEach(function(entry) {
+                if (entry.isIntersecting) {
+                  var visibleCards = layerTimeline.querySelectorAll('.layer-card.anime-slide-ready');
+                  visibleCards.forEach(function(card, idx) {
+                    setTimeout(function() {
+                      animate(card, {
+                        opacity: [0, 1],
+                        translateX: [-60, 0],
+                        duration: 700,
+                        ease: 'easeOutCubic'
+                      });
+                      card.classList.remove('anime-slide-ready');
+                    }, 200 + idx * 80);
+                  });
+                  layerTimelineObserver.unobserve(entry.target);
+                }
+              });
+            }, { threshold: 0.1 });
+            layerTimelineObserver.observe(layerTimeline);
+          }
+        }
+
+        // ---- 4. TECH CARD STAGGER SCALE-IN (Scroll-triggered) ----
+        var techCards = document.querySelectorAll('.tech-card');
+        if (techCards.length > 0) {
+          techCards.forEach(function(card) {
+            card.classList.add('anime-reveal-ready');
+          });
+
+          var techGrid = document.querySelector('.tech-grid');
+          if (techGrid) {
+            var techObserver = new IntersectionObserver(function(entries) {
+              entries.forEach(function(entry) {
+                if (entry.isIntersecting) {
+                  var cards = entry.target.querySelectorAll('.tech-card.anime-reveal-ready');
+                  cards.forEach(function(card, idx) {
+                    setTimeout(function() {
+                      animate(card, {
+                        opacity: [0, 1],
+                        scale: [0.85, 1],
+                        translateY: [30, 0],
+                        duration: 800,
+                        ease: 'easeOutElastic(1, 0.6)'
+                      });
+                      card.classList.remove('anime-reveal-ready');
+                    }, 100 + idx * 120);
+                  });
+                  techObserver.unobserve(entry.target);
+                }
+              });
+            }, { threshold: 0.2 });
+            techObserver.observe(techGrid);
+          }
+        }
+
+        // ---- 5. NUMBER COUNT ANIMATION (Score area) ----
+        var scoreEl = document.querySelector('#gauge-value');
+        var scoreSection = document.getElementById('scoring');
+        if (scoreEl && scoreSection) {
+          var scoreAnimated = false;
+          var scoreObserver = new IntersectionObserver(function(entries) {
+            if (entries[0].isIntersecting && !scoreAnimated) {
+              scoreAnimated = true;
+              var obj = { value: 0 };
+              animate(obj, {
+                value: 12,
+                duration: 2500,
+                ease: 'easeOutExpo',
+                onUpdate: function() {
+                  scoreEl.textContent = Math.round(obj.value);
+                }
+              });
+              scoreObserver.unobserve(scoreSection);
+            }
+          }, { threshold: 0.3 });
+          scoreObserver.observe(scoreSection);
+        }
+
+        // ---- 6. SECTION TITLE REVEAL ANIMATION ----
+        var sectionTitles = document.querySelectorAll('.section-title');
+        if (sectionTitles.length > 0) {
+          sectionTitles.forEach(function(title) {
+            title.classList.add('anime-reveal-ready');
+          });
+
+          var titleObserver = new IntersectionObserver(function(entries) {
+            entries.forEach(function(entry) {
+              if (entry.isIntersecting) {
+                animate(entry.target, {
+                  opacity: [0, 1],
+                  translateY: [20, 0],
+                  duration: 600,
+                  ease: 'easeOutCubic'
+                });
+                entry.target.classList.remove('anime-reveal-ready');
+                titleObserver.unobserve(entry.target);
+              }
+            });
+          }, { threshold: 0.5 });
+          sectionTitles.forEach(function(el) {
+            titleObserver.observe(el);
+          });
+        }
+
+        // ---- 7. NAVBAR SCROLL GLASS ENHANCEMENT ----
+        var navbar = document.getElementById('main-nav');
+        if (navbar) {
+          var lastScrolledState = false;
+          window.addEventListener('scroll', function() {
+            var scrolled = window.scrollY > 80;
+            if (scrolled !== lastScrolledState) {
+              lastScrolledState = scrolled;
+              animate(navbar, {
+                backdropFilter: scrolled ? 'blur(20px)' : 'blur(8px)',
+                backgroundColor: scrolled ? 'rgba(10,10,15,0.85)' : 'rgba(10,10,15,0.5)',
+                duration: 300,
+                ease: 'easeOutQuad'
+              });
+            }
+          }, { passive: true });
+        }
+
+        // ---- 8. BUTTON CLICK RIPPLE EFFECT ----
+        document.querySelectorAll('.liquid-btn').forEach(function(btn) {
+          btn.addEventListener('click', function(e) {
+            var rect = this.getBoundingClientRect();
+            var x = e.clientX - rect.left;
+            var y = e.clientY - rect.top;
+            var ripple = document.createElement('span');
+            ripple.style.cssText = 'position:absolute;border-radius:50%;background:rgba(255,255,255,0.3);width:0;height:0;left:' + x + 'px;top:' + y + 'px;transform:translate(-50%,-50%);pointer-events:none;';
+            this.style.position = 'relative';
+            this.style.overflow = 'hidden';
+            this.appendChild(ripple);
+            animate(ripple, {
+              width: 300,
+              height: 300,
+              opacity: [1, 0],
+              duration: 600,
+              ease: 'easeOutCubic',
+              complete: function() {
+                ripple.remove();
+              }
+            });
+          });
+        });
+      }
+
+      // Start animations after loader disappears
+      var loader = document.getElementById('loader');
+      if (loader) {
+        // Check if loader is already hidden
+        if (loader.classList.contains('hide') || loader.style.display === 'none') {
+          initAnimeAnimations();
+        } else {
+          // Wait for loader to hide
+          var checkInterval = setInterval(function() {
+            if (loader.classList.contains('hide') || loader.style.display === 'none') {
+              clearInterval(checkInterval);
+              setTimeout(initAnimeAnimations, 100);
+            }
+          }, 100);
+          // Fallback: run after 4 seconds regardless
+          setTimeout(function() {
+            clearInterval(checkInterval);
+            initAnimeAnimations();
+          }, 4000);
+        }
+      } else {
+        // No loader found, run immediately
+        initAnimeAnimations();
+      }
 
     })();
   </script>
