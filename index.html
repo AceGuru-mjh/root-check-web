@@ -1,0 +1,3429 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="APEX-Root - Android 设备完整性评估系统，20 层深度检测，3 模式隐藏，后量子签名">
+  <meta name="theme-color" content="#050510">
+  <title>APEX-Root · Android 设备完整性评估系统</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@3.4/dist/tailwind.min.css">
+  <style>
+    /* ============================================
+       CSS VARIABLES
+    ============================================ */
+    :root {
+      --cyber-cyan: #00F0FF;
+      --energy-purple: #8B5CF6;
+      --neon-pink: #F472B6;
+      --deep-black: #050510;
+      --deep-blue: #0a0a1a;
+      --glass-bg: rgba(255, 255, 255, 0.03);
+      --glass-border: rgba(255, 255, 255, 0.08);
+      --glass-highlight: rgba(255, 255, 255, 0.12);
+      --neon-glow: 0 0 20px rgba(0, 240, 255, 0.3);
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+    }
+
+    /* ============================================
+       RESET & BASE
+    ============================================ */
+    *, *::before, *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(0, 240, 255, 0.3) transparent;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--deep-black);
+      color: #e2e8f0;
+      cursor: none;
+      overflow-x: hidden;
+      line-height: 1.6;
+    }
+
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(0, 240, 255, 0.3);
+      border-radius: 3px;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+      cursor: none;
+    }
+
+    button {
+      cursor: none;
+    }
+
+    /* ============================================
+       LOADING SCREEN
+    ============================================ */
+    #loader {
+      position: fixed;
+      inset: 0;
+      z-index: 10000;
+      background: var(--deep-black);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1), transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    #loader.hide {
+      opacity: 0;
+      transform: translateY(-100%);
+      pointer-events: none;
+    }
+
+    .loader-text {
+      font-family: var(--font-mono);
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: 0.3em;
+      color: var(--cyber-cyan);
+      position: relative;
+      overflow: hidden;
+      margin-bottom: 3rem;
+    }
+
+    .loader-text::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 60%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(0, 240, 255, 0.4), transparent);
+      animation: scanLine 1.5s ease-in-out infinite;
+    }
+
+    @keyframes scanLine {
+      0% { left: -60%; }
+      100% { left: 100%; }
+    }
+
+    .loader-dots-container {
+      position: relative;
+      width: 120px;
+      height: 120px;
+    }
+
+    .loader-dot {
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: rgba(0, 240, 255, 0.12);
+      transition: background 0.3s, box-shadow 0.3s, transform 0.3s;
+    }
+
+    .loader-dot.active {
+      background: var(--cyber-cyan);
+      box-shadow: 0 0 12px var(--cyber-cyan), 0 0 30px rgba(0, 240, 255, 0.4);
+      transform: scale(1.4);
+    }
+
+    /* ============================================
+       CUSTOM CURSOR
+    ============================================ */
+    #cursor-crosshair {
+      position: fixed;
+      pointer-events: none;
+      z-index: 9999;
+      width: 48px;
+      height: 48px;
+      transform: translate(-50%, -50%);
+      transition: width 0.2s, height 0.2s, opacity 0.2s;
+      opacity: 0;
+    }
+
+    #cursor-crosshair.visible {
+      opacity: 1;
+    }
+
+    .cursor-line-h {
+      position: absolute;
+      top: 50%;
+      left: 0;
+      width: 100%;
+      height: 1px;
+      background: var(--cyber-cyan);
+      transform: translateY(-50%);
+      box-shadow: 0 0 6px rgba(0, 240, 255, 0.5);
+    }
+
+    .cursor-line-v {
+      position: absolute;
+      left: 50%;
+      top: 0;
+      height: 100%;
+      width: 1px;
+      background: var(--cyber-cyan);
+      transform: translateX(-50%);
+      box-shadow: 0 0 6px rgba(0, 240, 255, 0.5);
+    }
+
+    .cursor-circle {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 8px;
+      height: 8px;
+      border: 1px solid var(--cyber-cyan);
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      box-shadow: 0 0 8px rgba(0, 240, 255, 0.4);
+    }
+
+    #cursor-crosshair.hover-active {
+      width: 64px;
+      height: 64px;
+    }
+
+    #cursor-crosshair.hover-active .cursor-line-h,
+    #cursor-crosshair.hover-active .cursor-line-v,
+    #cursor-crosshair.hover-active .cursor-circle {
+      background: var(--energy-purple);
+      border-color: var(--energy-purple);
+      box-shadow: 0 0 10px rgba(139, 92, 246, 0.5);
+    }
+
+    .click-ripple {
+      position: fixed;
+      pointer-events: none;
+      z-index: 9998;
+      width: 20px;
+      height: 20px;
+      border: 1px solid var(--cyber-cyan);
+      border-radius: 50%;
+      transform: translate(-50%, -50%) scale(0);
+      animation: rippleExpand 0.6s cubic-bezier(0, 0.5, 0.5, 1) forwards;
+    }
+
+    @keyframes rippleExpand {
+      0% {
+        transform: translate(-50%, -50%) scale(0);
+        opacity: 1;
+      }
+      100% {
+        transform: translate(-50%, -50%) scale(6);
+        opacity: 0;
+      }
+    }
+
+    /* ============================================
+       SCROLL PROGRESS BAR
+    ============================================ */
+    #scroll-progress {
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 3px;
+      width: 0%;
+      background: linear-gradient(90deg, var(--cyber-cyan), var(--energy-purple));
+      z-index: 9990;
+      box-shadow:
+        0 0 10px var(--cyber-cyan),
+        0 2px 10px rgba(0, 240, 255, 0.3),
+        0 4px 20px rgba(139, 92, 246, 0.2);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      transition: width 0.1s linear;
+    }
+
+    /* ============================================
+       GRID OVERLAY
+    ============================================ */
+    #grid-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      opacity: 0.04;
+      background-image:
+        linear-gradient(rgba(0, 240, 255, 0.3) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 240, 255, 0.3) 1px, transparent 1px);
+      background-size: 60px 60px;
+      perspective: 800px;
+      transform-style: preserve-3d;
+      transition: transform 0.3s ease-out;
+    }
+
+    /* ============================================
+       NAVIGATION
+    ============================================ */
+    #main-nav {
+      position: fixed;
+      top: 2px;
+      left: 0;
+      right: 0;
+      z-index: 9000;
+      padding: 0.75rem 2rem;
+      background: rgba(5, 5, 16, 0.4);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid transparent;
+      transition: all 0.4s ease;
+    }
+
+    #main-nav.scrolled {
+      background: rgba(5, 5, 16, 0.85);
+      border-bottom-color: var(--glass-border);
+      box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+    }
+
+    .nav-inner {
+      max-width: 1280px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-family: var(--font-mono);
+      font-weight: 700;
+      font-size: 1.1rem;
+      letter-spacing: 0.1em;
+      color: var(--cyber-cyan);
+      position: relative;
+    }
+
+    .nav-logo::before,
+    .nav-logo::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      border-radius: 50%;
+      animation: logo-pulse 3s ease-in-out infinite;
+    }
+
+    .nav-logo::before {
+      width: 30px;
+      height: 30px;
+      border: 1px solid rgba(0, 240, 255, 0.3);
+      animation-delay: 0s;
+    }
+
+    .nav-logo::after {
+      width: 40px;
+      height: 40px;
+      border: 1px solid rgba(139, 92, 246, 0.2);
+      animation-delay: 1s;
+    }
+
+    @keyframes logo-pulse {
+      0%, 100% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 0.3;
+      }
+      50% {
+        transform: translate(-50%, -50%) scale(1.3);
+        opacity: 0.6;
+      }
+    }
+
+    .nav-logo svg {
+      width: 24px;
+      height: 24px;
+      filter: drop-shadow(0 0 6px rgba(0, 240, 255, 0.5));
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+      list-style: none;
+    }
+
+    .nav-links a {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: rgba(226, 232, 240, 0.7);
+      transition: all 0.3s cubic-bezier(0.19, 1, 0.22, 1);
+      position: relative;
+    }
+
+    .nav-links a::after {
+      content: '';
+      position: absolute;
+      bottom: -4px;
+      left: 0;
+      width: 0;
+      height: 1px;
+      background: var(--cyber-cyan);
+      transition: width 0.3s;
+      box-shadow: 0 0 6px rgba(0, 240, 255, 0.5);
+    }
+
+    .nav-links a:hover {
+      color: var(--cyber-cyan);
+      text-shadow: 0 0 10px rgba(0, 240, 255, 0.6);
+      transform: translateY(-2px);
+    }
+
+    .nav-links a:hover::after {
+      width: 100%;
+    }
+
+    .hamburger {
+      display: none;
+      flex-direction: column;
+      gap: 5px;
+      background: none;
+      border: none;
+      padding: 4px;
+    }
+
+    .hamburger span {
+      display: block;
+      width: 24px;
+      height: 2px;
+      background: var(--cyber-cyan);
+      border-radius: 1px;
+      transition: all 0.3s;
+    }
+
+    .hamburger.active span:nth-child(1) {
+      transform: rotate(45deg) translate(5px, 5px);
+    }
+    .hamburger.active span:nth-child(2) {
+      opacity: 0;
+    }
+    .hamburger.active span:nth-child(3) {
+      transform: rotate(-45deg) translate(5px, -5px);
+    }
+
+    .mobile-menu {
+      display: none;
+      position: fixed;
+      top: 0;
+      right: -100%;
+      width: 280px;
+      height: 100vh;
+      background: rgba(5, 5, 16, 0.95);
+      backdrop-filter: blur(30px);
+      -webkit-backdrop-filter: blur(30px);
+      border-left: 1px solid var(--glass-border);
+      z-index: 8999;
+      padding: 5rem 2rem 2rem;
+      transition: right 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .mobile-menu.open {
+      right: 0;
+    }
+
+    .mobile-menu a {
+      display: block;
+      padding: 1rem 0;
+      font-size: 1rem;
+      font-weight: 500;
+      color: rgba(226, 232, 240, 0.8);
+      border-bottom: 1px solid var(--glass-border);
+      transition: color 0.3s, padding-left 0.3s;
+    }
+
+    .mobile-menu a:hover {
+      color: var(--cyber-cyan);
+      padding-left: 0.5rem;
+    }
+
+    /* ============================================
+       GLASS CARD
+    ============================================ */
+    .glass-card {
+      background: var(--glass-bg);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--glass-border);
+      border-radius: 16px;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+    }
+
+    .glass-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--glass-highlight), transparent);
+    }
+
+    .glass-card:hover {
+      background: rgba(255, 255, 255, 0.06);
+      border-color: rgba(0, 240, 255, 0.2);
+      box-shadow: var(--neon-glow), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    }
+
+    .glass-card::after {
+      content: '';
+      position: absolute;
+      inset: -20px;
+      border-radius: 24px;
+      background: radial-gradient(circle at var(--hx, 50%) var(--hy, 50%), rgba(0, 240, 255, 0.1), transparent 50%);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      pointer-events: none;
+    }
+
+    .glass-card:hover::after {
+      opacity: 1;
+    }
+
+    /* ============================================
+       LIQUID BUTTON
+    ============================================ */
+    .liquid-btn {
+      position: relative;
+      overflow: hidden;
+      border-radius: 12px;
+      padding: 0.875rem 2rem;
+      font-family: var(--font-sans);
+      font-weight: 600;
+      font-size: 0.95rem;
+      border: none;
+      transition: all 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .liquid-btn::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at var(--x, 50%) var(--y, 50%), rgba(255, 255, 255, 0.3), transparent 60%);
+      opacity: 0;
+      transition: opacity 0.3s;
+      border-radius: inherit;
+    }
+
+    .liquid-btn:hover::after {
+      opacity: 1;
+    }
+
+    .liquid-btn:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 30px rgba(0, 240, 255, 0.4);
+    }
+
+    .liquid-btn-primary {
+      background: linear-gradient(135deg, var(--cyber-cyan), var(--energy-purple));
+      color: #050510;
+    }
+
+    .liquid-btn-secondary {
+      background: transparent;
+      color: var(--cyber-cyan);
+      border: 1px solid rgba(0, 240, 255, 0.3);
+    }
+
+    .liquid-btn-secondary:hover {
+      border-color: var(--cyber-cyan);
+      box-shadow: 0 0 30px rgba(0, 240, 255, 0.2);
+    }
+
+    /* ============================================
+       SECTION BASE STYLES
+    ============================================ */
+    .section-wrapper {
+      position: relative;
+      z-index: 2;
+    }
+
+    .section-title {
+      font-size: clamp(1.8rem, 4vw, 2.8rem);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      background: linear-gradient(135deg, #ffffff, var(--cyber-cyan));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 0.75rem;
+    }
+
+    .section-subtitle {
+      font-size: 1.05rem;
+      color: rgba(226, 232, 240, 0.6);
+      max-width: 600px;
+      margin: 0 auto 3rem;
+      line-height: 1.7;
+    }
+
+    /* Reveal animation */
+    .reveal {
+      opacity: 0;
+      transform: translateY(40px);
+      transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1), transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+      will-change: opacity, transform;
+      filter: blur(4px);
+    }
+
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+      filter: blur(0);
+      transition: filter 0.6s ease;
+    }
+
+    .reveal-stagger {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1), transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .reveal-stagger.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    section {
+      position: relative;
+      transition: transform 0.1s ease-out;
+    }
+
+    .reveal.visible {
+      animation: section-fade-up 0.8s cubic-bezier(0.19, 1, 0.22, 1) forwards;
+    }
+
+    @keyframes section-fade-up {
+      from {
+        opacity: 0;
+        transform: translateY(40px) scale(0.98);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    /* ============================================
+       SECTION 1: HERO
+    ============================================ */
+    #hero {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      position: relative;
+      padding: 2rem;
+    }
+
+    #hero-canvas {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 2;
+    }
+
+    .hero-title {
+      font-family: var(--font-mono);
+      font-size: clamp(2.5rem, 8vw, 5.5rem);
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      background: linear-gradient(135deg, var(--cyber-cyan) 0%, var(--energy-purple) 50%, var(--neon-pink) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 0.5rem;
+      line-height: 1.1;
+      position: relative;
+      text-shadow:
+        0 0 10px rgba(0, 240, 255, 0.5),
+        0 0 20px rgba(0, 240, 255, 0.3),
+        0 0 30px rgba(139, 92, 246, 0.2);
+      animation: text-glow 3s ease-in-out infinite;
+    }
+
+    @keyframes text-glow {
+      0%, 100% {
+        text-shadow:
+          0 0 10px rgba(0, 240, 255, 0.5),
+          0 0 20px rgba(0, 240, 255, 0.3),
+          0 0 30px rgba(139, 92, 246, 0.2);
+      }
+      50% {
+        text-shadow:
+          0 0 20px rgba(0, 240, 255, 0.8),
+          0 0 40px rgba(0, 240, 255, 0.5),
+          0 0 60px rgba(139, 92, 246, 0.4);
+      }
+    }
+
+    .hero-title::after {
+      content: 'APEX-ROOT';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, var(--cyber-cyan), var(--energy-purple));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      filter: blur(30px);
+      opacity: 0.4;
+      z-index: -1;
+    }
+
+    .hero-subtitle {
+      font-size: clamp(1rem, 2.5vw, 1.35rem);
+      color: rgba(226, 232, 240, 0.8);
+      font-weight: 400;
+      margin-bottom: 1rem;
+      letter-spacing: 0.05em;
+    }
+
+    .hero-tagline {
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      color: var(--cyber-cyan);
+      opacity: 0.7;
+      margin-bottom: 2.5rem;
+      letter-spacing: 0.05em;
+    }
+
+    .hero-buttons {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 1.5rem;
+    }
+
+    .hero-badges {
+      display: flex;
+      gap: 0.75rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      padding: 0.35rem 0.75rem;
+      border-radius: 20px;
+      border: 1px solid var(--glass-border);
+      color: rgba(226, 232, 240, 0.6);
+      background: rgba(255, 255, 255, 0.02);
+      letter-spacing: 0.05em;
+    }
+
+    .badge-highlight {
+      border-color: rgba(0, 240, 255, 0.2);
+      color: var(--cyber-cyan);
+      animation: badge-pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes badge-pulse {
+      0%, 100% {
+        box-shadow: 0 0 10px rgba(0, 240, 255, 0.3);
+      }
+      50% {
+        box-shadow: 0 0 20px rgba(0, 240, 255, 0.6), 0 0 30px rgba(139, 92, 246, 0.3);
+      }
+    }
+
+    /* ============================================
+       SECTION 2: 20-LAYER DETECTION
+    ============================================ */
+    #detection {
+      padding: 6rem 2rem;
+      position: relative;
+    }
+
+    .detection-container {
+      max-width: 1000px;
+      margin: 0 auto;
+      position: relative;
+    }
+
+    .layer-timeline {
+      position: relative;
+      padding-left: 60px;
+    }
+
+    .layer-timeline::before {
+      content: '';
+      position: absolute;
+      left: 24px;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: linear-gradient(180deg, var(--cyber-cyan), var(--energy-purple), var(--neon-pink), var(--cyber-cyan));
+      opacity: 0.2;
+    }
+
+    .layer-node {
+      position: relative;
+      margin-bottom: 1.25rem;
+      opacity: 0.3;
+      transform: translateX(-20px);
+      transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .layer-node.active {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    .layer-dot {
+      position: absolute;
+      left: -45px;
+      top: 1.2rem;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      border: 2px solid var(--glass-border);
+      background: var(--deep-black);
+      transition: all 0.4s;
+      z-index: 1;
+    }
+
+    .layer-node.active .layer-dot {
+      border-color: var(--layer-color, var(--cyber-cyan));
+      background: var(--layer-color, var(--cyber-cyan));
+      box-shadow: 0 0 12px var(--layer-color, var(--cyber-cyan));
+    }
+
+    .layer-card {
+      padding: 1.25rem 1.5rem;
+    }
+
+    .layer-timeline {
+      position: relative;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 3rem 0;
+    }
+
+    .layer-timeline::before {
+      content: '';
+      position: absolute;
+      left: 40px;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: linear-gradient(180deg,
+        rgba(0, 240, 255, 0.1),
+        rgba(139, 92, 246, 0.2),
+        rgba(244, 114, 182, 0.1)
+      );
+      background-size: 2px 100%;
+    }
+
+    .layer-dot {
+      position: absolute;
+      left: 32px;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--layer-color, var(--cyber-cyan));
+      box-shadow:
+        0 0 15px var(--layer-color, rgba(0, 240, 255, 0.6)),
+        inset 0 2px 4px rgba(255, 255, 255, 0.3);
+      z-index: 2;
+      transition: all 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+    }
+
+    .layer-node.active .layer-dot {
+      transform: scale(1.4);
+      box-shadow:
+        0 0 25px var(--layer-color, rgba(0, 240, 255, 0.8)),
+        0 0 50px var(--layer-color, rgba(0, 240, 255, 0.4)),
+        inset 0 2px 4px rgba(255, 255, 255, 0.5);
+    }
+
+    .layer-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .layer-number {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--layer-color, var(--cyber-cyan));
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .layer-name {
+      font-weight: 700;
+      font-size: 1rem;
+      color: #f1f5f9;
+    }
+
+    .layer-content {
+      font-size: 0.85rem;
+      color: rgba(226, 232, 240, 0.6);
+      margin-bottom: 0.5rem;
+      line-height: 1.5;
+    }
+
+    .layer-tech {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--layer-color, var(--cyber-cyan));
+      opacity: 0.7;
+    }
+
+    /* ============================================
+       SECTION 3: HIDING MODES
+    ============================================ */
+    #hiding {
+      padding: 6rem 2rem;
+    }
+
+    .mode-cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem;
+      max-width: 1100px;
+      margin: 0 auto 3rem;
+    }
+
+    .mode-card {
+      padding: 2.5rem 2rem;
+      text-align: center;
+      border-radius: 20px;
+      transition: all 0.5s cubic-bezier(0.19, 1, 0.22, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .mode-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      padding: 1px;
+      background: linear-gradient(135deg, var(--mode-color, var(--cyber-cyan)), transparent 60%);
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      opacity: 0.4;
+      transition: opacity 0.4s;
+    }
+
+    .mode-card:hover::before {
+      opacity: 1;
+    }
+
+    .mode-card:hover {
+      transform: translateY(-8px) scale(1.02);
+      box-shadow: 0 0 40px rgba(0, 240, 255, 0.08);
+    }
+
+    .mode-icon {
+      width: 64px;
+      height: 64px;
+      margin: 0 auto 1.5rem;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 240, 255, 0.05);
+      border: 1px solid rgba(0, 240, 255, 0.1);
+    }
+
+    .mode-icon svg {
+      width: 32px;
+      height: 32px;
+      color: var(--mode-color, var(--cyber-cyan));
+    }
+
+    .mode-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      color: #f1f5f9;
+    }
+
+    .mode-desc {
+      font-size: 0.85rem;
+      color: rgba(226, 232, 240, 0.6);
+      margin-bottom: 0.3rem;
+    }
+
+    .mode-tech-tag {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--mode-color, var(--cyber-cyan));
+      opacity: 0.8;
+    }
+
+    .hiding-tech-panel {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .tech-detail-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+    }
+
+    .tech-detail-item {
+      padding: 1.5rem;
+    }
+
+    .tech-detail-title {
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--cyber-cyan);
+      margin-bottom: 0.5rem;
+    }
+
+    .tech-detail-text {
+      font-size: 0.8rem;
+      color: rgba(226, 232, 240, 0.5);
+      line-height: 1.6;
+    }
+
+    /* ============================================
+       SECTION 4: TECH HIGHLIGHTS
+    ============================================ */
+    #tech {
+      padding: 6rem 2rem;
+    }
+
+    .tech-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1.5rem;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .tech-card {
+      padding: 2rem;
+      position: relative;
+    }
+
+    .tech-card-icon {
+      width: 48px;
+      height: 48px;
+      margin-bottom: 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 12px;
+      background: rgba(0, 240, 255, 0.05);
+      border: 1px solid rgba(0, 240, 255, 0.1);
+    }
+
+    .tech-card-icon svg {
+      width: 24px;
+      height: 24px;
+      color: var(--cyber-cyan);
+    }
+
+    .tech-card-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      color: #f1f5f9;
+    }
+
+    .tech-card-desc {
+      font-size: 0.875rem;
+      color: rgba(226, 232, 240, 0.55);
+      line-height: 1.7;
+      margin-bottom: 1rem;
+    }
+
+    .tech-card-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+    }
+
+    .tech-badge {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      padding: 0.25rem 0.6rem;
+      border-radius: 6px;
+      background: rgba(139, 92, 246, 0.08);
+      border: 1px solid rgba(139, 92, 246, 0.15);
+      color: var(--energy-purple);
+    }
+
+    /* Particle container for tech cards */
+    .tech-card .particle-container {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      border-radius: inherit;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.4s;
+    }
+
+    .tech-card:hover .particle-container {
+      opacity: 1;
+    }
+
+    .tech-card:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(0, 240, 255, 0.3);
+      box-shadow:
+        var(--neon-glow),
+        0 0 40px rgba(0, 240, 255, 0.15);
+      transform: translateY(-8px) scale(1.02);
+    }
+
+    .tech-particle {
+      position: absolute;
+      width: 3px;
+      height: 3px;
+      border-radius: 50%;
+      background: var(--cyber-cyan);
+      opacity: 0;
+      animation: techParticleFloat 3s ease-in-out infinite;
+    }
+
+    @keyframes techParticleFloat {
+      0% { transform: translateY(100%) scale(0); opacity: 0; }
+      50% { opacity: 0.6; }
+      100% { transform: translateY(-20px) scale(1); opacity: 0; }
+    }
+
+    /* ============================================
+       SECTION 5: SCORING
+    ============================================ */
+    #scoring {
+      padding: 6rem 2rem;
+    }
+
+    .scoring-container {
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+
+    .scoring-visual {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4rem;
+      margin-bottom: 3rem;
+      flex-wrap: wrap;
+    }
+
+    .gauge-wrapper {
+      position: relative;
+      width: 260px;
+      height: 260px;
+    }
+
+    #gauge-canvas {
+      width: 260px;
+      height: 260px;
+    }
+
+    .gauge-score {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .gauge-number {
+      font-family: var(--font-mono);
+      font-size: 3.5rem;
+      font-weight: 900;
+      color: #f1f5f9;
+      line-height: 1;
+    }
+
+    .gauge-label {
+      font-size: 0.75rem;
+      color: rgba(226, 232, 240, 0.5);
+      margin-top: 0.25rem;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+    }
+
+    .risk-levels {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .risk-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem 1.25rem;
+      border-radius: 12px;
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      min-width: 260px;
+      transition: all 0.3s;
+    }
+
+    .risk-item:hover {
+      border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    .risk-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .risk-name {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #e2e8f0;
+    }
+
+    .risk-range {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: rgba(226, 232, 240, 0.5);
+      margin-left: auto;
+    }
+
+    .scoring-principles {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+      margin-bottom: 3rem;
+    }
+
+    .principle-card {
+      padding: 1.5rem;
+      text-align: center;
+    }
+
+    .principle-num {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      color: var(--energy-purple);
+      margin-bottom: 0.5rem;
+      letter-spacing: 0.1em;
+    }
+
+    .principle-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #f1f5f9;
+      margin-bottom: 0.3rem;
+    }
+
+    .principle-desc {
+      font-size: 0.78rem;
+      color: rgba(226, 232, 240, 0.5);
+      line-height: 1.5;
+    }
+
+    .assess-modes {
+      max-width: 700px;
+      margin: 0 auto;
+    }
+
+    .assess-modes-title {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: rgba(226, 232, 240, 0.7);
+      margin-bottom: 1rem;
+      text-align: center;
+    }
+
+    .assess-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid var(--glass-border);
+    }
+
+    .assess-table th,
+    .assess-table td {
+      padding: 0.85rem 1.25rem;
+      text-align: left;
+      font-size: 0.85rem;
+    }
+
+    .assess-table th {
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--cyber-cyan);
+      font-weight: 600;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      border-bottom: 1px solid var(--glass-border);
+    }
+
+    .assess-table td {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+      color: rgba(226, 232, 240, 0.7);
+    }
+
+    .assess-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .assess-table tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .mode-tag {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      background: rgba(0, 240, 255, 0.08);
+      color: var(--cyber-cyan);
+      border: 1px solid rgba(0, 240, 255, 0.15);
+    }
+
+    /* ============================================
+       SECTION 6: DOWNLOAD
+    ============================================ */
+    #download {
+      padding: 6rem 2rem;
+    }
+
+    .download-container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .download-primary-card {
+      padding: 3rem;
+      text-align: center;
+      margin-bottom: 2rem;
+      background: linear-gradient(135deg, rgba(0, 240, 255, 0.03), rgba(139, 92, 246, 0.03));
+    }
+
+    .download-icon {
+      width: 72px;
+      height: 72px;
+      margin: 0 auto 1.5rem;
+      border-radius: 20px;
+      background: linear-gradient(135deg, rgba(0, 240, 255, 0.1), rgba(139, 92, 246, 0.1));
+      border: 1px solid rgba(0, 240, 255, 0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .download-icon svg {
+      width: 36px;
+      height: 36px;
+      color: var(--cyber-cyan);
+    }
+
+    .download-title {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: #f1f5f9;
+      margin-bottom: 0.5rem;
+    }
+
+    .download-desc {
+      font-size: 0.9rem;
+      color: rgba(226, 232, 240, 0.6);
+      margin-bottom: 1.5rem;
+    }
+
+    .download-info {
+      display: flex;
+      justify-content: center;
+      gap: 2rem;
+      margin-top: 1.25rem;
+      flex-wrap: wrap;
+    }
+
+    .download-info-item {
+      font-size: 0.8rem;
+      color: rgba(226, 232, 240, 0.5);
+    }
+
+    .download-info-item span {
+      color: var(--cyber-cyan);
+      font-family: var(--font-mono);
+    }
+
+    .source-section {
+      margin-bottom: 2rem;
+    }
+
+    .source-section h3 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #f1f5f9;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .source-section h3 svg {
+      width: 20px;
+      height: 20px;
+      color: var(--energy-purple);
+    }
+
+    .code-block {
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid var(--glass-border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .code-block::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--glass-highlight), transparent);
+    }
+
+    .code-block pre {
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      line-height: 1.8;
+      color: rgba(226, 232, 240, 0.8);
+      overflow-x: auto;
+    }
+
+    .code-block .comment {
+      color: rgba(226, 232, 240, 0.3);
+    }
+
+    .code-block .cmd {
+      color: var(--cyber-cyan);
+    }
+
+    .code-block .url {
+      color: var(--energy-purple);
+    }
+
+    .copy-btn {
+      position: absolute;
+      top: 0.75rem;
+      right: 0.75rem;
+      padding: 0.35rem 0.75rem;
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--glass-border);
+      border-radius: 6px;
+      color: rgba(226, 232, 240, 0.5);
+      transition: all 0.3s;
+    }
+
+    .copy-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--cyber-cyan);
+      border-color: rgba(0, 240, 255, 0.2);
+    }
+
+    .requirements-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 0.75rem;
+      margin-top: 1.5rem;
+    }
+
+    .req-item {
+      padding: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .req-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      background: rgba(139, 92, 246, 0.08);
+      border: 1px solid rgba(139, 92, 246, 0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .req-icon svg {
+      width: 18px;
+      height: 18px;
+      color: var(--energy-purple);
+    }
+
+    .req-name {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #e2e8f0;
+    }
+
+    .req-version {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      color: rgba(226, 232, 240, 0.4);
+    }
+
+    .download-links {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .download-link {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1.5rem;
+      border-radius: 12px;
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #e2e8f0;
+      transition: all 0.3s;
+    }
+
+    .download-link:hover {
+      border-color: rgba(0, 240, 255, 0.3);
+      background: rgba(255, 255, 255, 0.06);
+      box-shadow: var(--neon-glow);
+    }
+
+    .download-link svg {
+      width: 18px;
+      height: 18px;
+      color: var(--cyber-cyan);
+    }
+
+    /* ============================================
+       SECTION 7: FOOTER
+    ============================================ */
+    #footer {
+      padding: 4rem 2rem 2rem;
+      border-top: 1px solid var(--glass-border);
+      position: relative;
+      z-index: 2;
+    }
+
+    .footer-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .footer-top {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr;
+      gap: 3rem;
+      margin-bottom: 3rem;
+    }
+
+    .footer-brand .nav-logo {
+      margin-bottom: 1rem;
+    }
+
+    .footer-tagline {
+      font-size: 0.85rem;
+      color: rgba(226, 232, 240, 0.5);
+      line-height: 1.7;
+      max-width: 360px;
+    }
+
+    .footer-col-title {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      color: rgba(226, 232, 240, 0.4);
+      margin-bottom: 1rem;
+    }
+
+    .footer-links {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+
+    .footer-links a {
+      font-size: 0.85rem;
+      color: rgba(226, 232, 240, 0.6);
+      transition: color 0.3s;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .footer-links a:hover {
+      color: var(--cyber-cyan);
+    }
+
+    .footer-links a svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    .footer-tech-stack {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 1.5rem;
+    }
+
+    .footer-tech-badge {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      padding: 0.3rem 0.6rem;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      color: rgba(226, 232, 240, 0.4);
+      transition: all 0.3s;
+    }
+
+    .footer-tech-badge:hover {
+      border-color: rgba(0, 240, 255, 0.2);
+      color: var(--cyber-cyan);
+    }
+
+    .footer-bottom {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 2rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.04);
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .footer-copyright {
+      font-size: 0.78rem;
+      color: rgba(226, 232, 240, 0.35);
+    }
+
+    .footer-copyright a {
+      color: rgba(226, 232, 240, 0.5);
+      transition: color 0.3s;
+    }
+
+    .footer-copyright a:hover {
+      color: var(--cyber-cyan);
+    }
+
+    .footer-privacy {
+      font-size: 0.78rem;
+      color: rgba(226, 232, 240, 0.35);
+    }
+
+    .footer-privacy a {
+      color: rgba(226, 232, 240, 0.5);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      transition: color 0.3s;
+    }
+
+    .footer-privacy a:hover {
+      color: var(--cyber-cyan);
+      border-bottom-color: var(--cyber-cyan);
+    }
+
+    /* ============================================
+       MOBILE RESPONSIVE
+    ============================================ */
+    @media (max-width: 768px) {
+      .nav-links {
+        display: none;
+      }
+
+      .hamburger {
+        display: flex;
+      }
+
+      .mobile-menu {
+        display: block;
+      }
+
+      .mode-cards {
+        grid-template-columns: 1fr;
+      }
+
+      .tech-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .scoring-visual {
+        flex-direction: column;
+        gap: 2rem;
+      }
+
+      .scoring-principles {
+        grid-template-columns: 1fr;
+      }
+
+      .footer-top {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+      }
+
+      .tech-detail-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-title {
+        letter-spacing: 0.04em;
+      }
+
+      .layer-timeline {
+        padding-left: 40px;
+      }
+
+      .layer-timeline::before {
+        left: 14px;
+      }
+
+      .layer-dot {
+        left: -32px;
+        width: 10px;
+        height: 10px;
+      }
+
+      .download-primary-card {
+        padding: 2rem 1.5rem;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .hero-buttons {
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .hero-badges {
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .gauge-wrapper {
+        width: 200px;
+        height: 200px;
+      }
+
+      #gauge-canvas {
+        width: 200px;
+        height: 200px;
+      }
+
+      .gauge-number {
+        font-size: 2.5rem;
+      }
+
+      .risk-item {
+        min-width: auto;
+      }
+
+      .assess-table th,
+      .assess-table td {
+        padding: 0.6rem 0.75rem;
+        font-size: 0.78rem;
+      }
+    }
+
+    /* ============================================
+       UTILITY ANIMATIONS
+    ============================================ */
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 0.5; }
+      50% { opacity: 1; }
+    }
+
+    @keyframes glow {
+      0%, 100% { box-shadow: 0 0 20px rgba(0, 240, 255, 0.2); }
+      50% { box-shadow: 0 0 40px rgba(0, 240, 255, 0.4); }
+    }
+
+    @keyframes rotate {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Noise texture overlay */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      z-index: 9998;
+      pointer-events: none;
+      opacity: 0.015;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+      background-repeat: repeat;
+      background-size: 256px 256px;
+    }
+
+    /* ============================================
+       METABALL CONTAINER (SVG Filter Approach)
+    ============================================ */
+    #metaball-container {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      filter: url(#metaball-filter);
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .metaball {
+      position: absolute;
+      border-radius: 50%;
+      will-change: transform;
+    }
+
+    @keyframes mb-float-1 {
+      0%, 100% { transform: translate(10vw, 20vh); }
+      25% { transform: translate(60vw, 10vh); }
+      50% { transform: translate(40vw, 60vh); }
+      75% { transform: translate(15vw, 50vh); }
+    }
+    @keyframes mb-float-2 {
+      0%, 100% { transform: translate(70vw, 30vh); }
+      25% { transform: translate(20vw, 70vh); }
+      50% { transform: translate(80vw, 50vh); }
+      75% { transform: translate(50vw, 20vh); }
+    }
+    @keyframes mb-float-3 {
+      0%, 100% { transform: translate(30vw, 70vh); }
+      25% { transform: translate(80vw, 40vh); }
+      50% { transform: translate(10vw, 30vh); }
+      75% { transform: translate(60vw, 80vh); }
+    }
+    @keyframes mb-float-4 {
+      0%, 100% { transform: translate(50vw, 10vh); }
+      25% { transform: translate(10vw, 60vh); }
+      50% { transform: translate(70vw, 80vh); }
+      75% { transform: translate(30vw, 40vh); }
+    }
+    @keyframes mb-float-5 {
+      0%, 100% { transform: translate(85vw, 60vh); }
+      25% { transform: translate(40vw, 20vh); }
+      50% { transform: translate(20vw, 50vh); }
+      75% { transform: translate(75vw, 90vh); }
+    }
+
+    /* ============================================
+       FLUID NUMBER SVG FILTER
+    ============================================ */
+    .fluid-number {
+      display: inline-block;
+      filter: url(#liquid-distort);
+      transition: filter 0.5s ease;
+    }
+    .fluid-number:hover {
+      filter: url(#liquid-distort) brightness(1.2);
+    }
+
+    /* ============================================
+       LOADER ENHANCEMENTS
+    ============================================ */
+    .loader-scan-line {
+      position: absolute;
+      width: 100%;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--cyber-cyan), transparent);
+      animation: scan-sweep 1.5s ease-in-out infinite;
+    }
+
+    @keyframes scan-sweep {
+      0% { left: -100%; }
+      100% { left: 100%; }
+    }
+
+    .loader-status {
+      margin-top: 30px;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--cyber-cyan);
+      opacity: 0.7;
+      letter-spacing: 0.3em;
+    }
+
+    /* ============================================
+       SECTION SCROLL SNAP
+    ============================================ */
+    @media (min-width: 1024px) {
+      html {
+        scroll-snap-type: y proximity;
+      }
+      section {
+        scroll-snap-align: start;
+      }
+    }
+
+    /* ============================================
+       ENHANCED MOBILE RESPONSIVE
+    ============================================ */
+    @media (max-width: 768px) {
+      .hero-title { font-size: 2.5rem !important; }
+      .hero-subtitle { font-size: 1rem !important; }
+      .section-title { font-size: 1.75rem !important; }
+      body { cursor: auto; }
+      #cursor-crosshair, .click-ripple { display: none !important; }
+      .mode-cards { flex-direction: column !important; }
+      .tech-grid { grid-template-columns: 1fr !important; }
+      .layer-card { padding: 16px !important; }
+      .metaball { display: none; }
+      .grid-overlay { display: none; }
+    }
+    @media (max-width: 480px) {
+      .hero-title { font-size: 1.8rem !important; }
+      .hero-buttons { flex-direction: column !important; }
+      .liquid-btn { width: 100% !important; }
+    }
+
+    /* ============================================
+       CODE BLOCK ENHANCEMENTS
+    ============================================ */
+    .code-block {
+      position: relative;
+      background: rgba(0, 0, 0, 0.4) !important;
+      border: 1px solid rgba(0, 240, 255, 0.1);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .code-block::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(0, 240, 255, 0.3), transparent);
+    }
+    .code-block-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 16px;
+      background: rgba(255, 255, 255, 0.03);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .code-block-dots {
+      display: flex;
+      gap: 6px;
+    }
+    .code-block-dots span {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+    .code-block-dots span:nth-child(1) { background: #ff5f57; }
+    .code-block-dots span:nth-child(2) { background: #febc2e; }
+    .code-block-dots span:nth-child(3) { background: #28c840; }
+    .code-block pre {
+      padding: 20px;
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      line-height: 1.7;
+      color: #a5b4fc;
+      overflow-x: auto;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- SVG Filters (hidden) -->
+  <svg style="position:absolute;width:0;height:0;" aria-hidden="true">
+    <defs>
+      <filter id="metaball-filter">
+        <feGaussianBlur in="SourceGraphic" stdDeviation="40" result="blur"/>
+        <feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 60 -30" result="glow"/>
+      </filter>
+      <filter id="liquid">
+        <feTurbulence type="fractalNoise" baseFrequency="0.015" numOctaves="3" result="turbulence" seed="2">
+          <animate attributeName="baseFrequency" dur="8s" values="0.015;0.02;0.015" repeatCount="indefinite"/>
+        </feTurbulence>
+        <feDisplacementMap in="SourceGraphic" in2="turbulence" scale="6" xChannelSelector="R" yChannelSelector="G"/>
+      </filter>
+      <filter id="liquid-distort">
+        <feTurbulence type="fractalNoise" baseFrequency="0.01" numOctaves="3" result="noise" seed="2"/>
+        <feDisplacementMap in="SourceGraphic" in2="noise" scale="3" xChannelSelector="R" yChannelSelector="G"/>
+      </filter>
+    </defs>
+  </svg>
+
+  <!-- Loading Screen -->
+  <div id="loader">
+    <div class="loader-text">
+      APEX-ROOT
+      <div class="loader-scan-line"></div>
+    </div>
+    <div class="loader-dots-container" id="loader-dots"></div>
+    <div class="loader-status" id="loader-status">SCANNING LAYERS...</div>
+  </div>
+
+  <!-- Custom Cursor -->
+  <div id="cursor-crosshair">
+    <div class="cursor-line-h"></div>
+    <div class="cursor-line-v"></div>
+    <div class="cursor-circle"></div>
+  </div>
+
+  <!-- Scroll Progress Bar -->
+  <div id="scroll-progress"></div>
+
+  <!-- Metaball Canvas Background -->
+  <canvas id="metaball-canvas"></canvas>
+  <div id="metaball-container">
+    <div class="metaball" style="width:300px;height:300px;background:radial-gradient(circle,rgba(139,92,246,0.6),transparent);animation:mb-float-1 20s ease-in-out infinite;"></div>
+    <div class="metaball" style="width:400px;height:400px;background:radial-gradient(circle,rgba(0,240,255,0.5),transparent);animation:mb-float-2 25s ease-in-out infinite;"></div>
+    <div class="metaball" style="width:250px;height:250px;background:radial-gradient(circle,rgba(139,92,246,0.5),transparent);animation:mb-float-3 18s ease-in-out infinite;"></div>
+    <div class="metaball" style="width:350px;height:350px;background:radial-gradient(circle,rgba(0,240,255,0.4),transparent);animation:mb-float-4 22s ease-in-out infinite;"></div>
+    <div class="metaball" style="width:280px;height:280px;background:radial-gradient(circle,rgba(139,92,246,0.4),transparent);animation:mb-float-5 30s ease-in-out infinite;"></div>
+  </div>
+
+  <!-- Grid Overlay -->
+  <div id="grid-overlay"></div>
+
+  <!-- Navigation -->
+  <nav id="main-nav">
+    <div class="nav-inner">
+      <a href="#hero" class="nav-logo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          <path d="M9 12l2 2 4-4" stroke="var(--cyber-cyan)" stroke-width="2.5"/>
+        </svg>
+        APEX-ROOT
+      </a>
+      <ul class="nav-links">
+        <li><a href="#detection">检测架构</a></li>
+        <li><a href="#hiding">隐藏系统</a></li>
+        <li><a href="#tech">技术亮点</a></li>
+        <li><a href="#scoring">评分算法</a></li>
+        <li><a href="#download">下载安装</a></li>
+      </ul>
+      <button class="hamburger" id="hamburger-btn" aria-label="Menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Mobile Menu -->
+  <div class="mobile-menu" id="mobile-menu">
+    <a href="#detection" class="mobile-nav-link">检测架构</a>
+    <a href="#hiding" class="mobile-nav-link">隐藏系统</a>
+    <a href="#tech" class="mobile-nav-link">技术亮点</a>
+    <a href="#scoring" class="mobile-nav-link">评分算法</a>
+    <a href="#download" class="mobile-nav-link">下载安装</a>
+  </div>
+
+  <!-- Main Content -->
+  <main class="section-wrapper">
+
+    <!-- ==========================================
+         SECTION 1: HERO
+    ========================================== -->
+    <section id="hero">
+      <canvas id="hero-canvas"></canvas>
+      <div class="hero-content">
+        <h1 class="hero-title">APEX-ROOT</h1>
+        <p class="hero-subtitle">Android 设备完整性评估系统</p>
+        <p class="hero-tagline">20 层深度检测 · 3 模式隐藏 · 后量子签名</p>
+        <div class="hero-buttons">
+          <button class="liquid-btn liquid-btn-primary" data-scroll-to="#download">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            立即下载
+          </button>
+          <button class="liquid-btn liquid-btn-secondary" data-scroll-to="#detection">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            查看文档
+          </button>
+        </div>
+        <div class="hero-badges">
+          <span class="badge badge-highlight">v1.1.1</span>
+          <span class="badge">GPL-3.0 开源</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==========================================
+         SECTION 2: 20-LAYER DETECTION
+    ========================================== -->
+    <section id="detection" class="reveal">
+      <div style="text-align:center;margin-bottom:1rem;">
+        <h2 class="section-title">20 层深度检测架构</h2>
+        <p class="section-subtitle">从系统属性到进程信任链，全方位覆盖 Android 安全检测的每一个角落</p>
+      </div>
+      <div class="detection-container">
+        <div class="layer-timeline" id="layer-timeline">
+
+          <!-- L1 -->
+          <div class="layer-node" data-layer="1">
+            <div class="layer-dot" style="--layer-color: #00F0FF;"></div>
+            <div class="glass-card layer-card" style="--layer-color: #00F0FF;">
+              <div class="layer-header">
+                <span class="layer-number">L1</span>
+                <span class="layer-name">System Properties</span>
+              </div>
+              <p class="layer-content">检测系统属性中的 Root 相关标记，包括 ro.debuggable、ro.secure、ro.build.tags 等关键字段</p>
+              <span class="layer-tech">getprop / Build.class / System.getProperty</span>
+            </div>
+          </div>
+
+          <!-- L2 -->
+          <div class="layer-node" data-layer="2">
+            <div class="layer-dot" style="--layer-color: #1BE0FF;"></div>
+            <div class="glass-card layer-card" style="--layer-color: #1BE0FF;">
+              <div class="layer-header">
+                <span class="layer-number">L2</span>
+                <span class="layer-name">ART Injection (Frida/Xposed/LSPosed)</span>
+              </div>
+              <p class="layer-content">检测运行时注入框架，包括 Frida 的 ptrace 注入、Xposed/LSPosed 的 Java 方法 Hook</p>
+              <span class="layer-tech">/proc/self/maps / D-Bus / port scanning</span>
+            </div>
+          </div>
+
+          <!-- L3 -->
+          <div class="layer-node" data-layer="3">
+            <div class="layer-dot" style="--layer-color: #33D0FF;"></div>
+            <div class="glass-card layer-card" style="--layer-color: #33D0FF;">
+              <div class="layer-header">
+                <span class="layer-number">L3</span>
+                <span class="layer-name">Memory Fingerprint (Magisk/Zygisk)</span>
+              </div>
+              <p class="layer-content">扫描进程内存空间，查找 Magisk 和 Zygisk 的特征字符串、数据结构和指纹模式</p>
+              <span class="layer-tech">/proc/self/mem / ptrace / libmemscan</span>
+            </div>
+          </div>
+
+          <!-- L4 -->
+          <div class="layer-node" data-layer="4">
+            <div class="layer-dot" style="--layer-color: #4CC0FF;"></div>
+            <div class="glass-card layer-card" style="--layer-color: #4CC0FF;">
+              <div class="layer-header">
+                <span class="layer-number">L4</span>
+                <span class="layer-name">Mount Check</span>
+              </div>
+              <p class="layer-content">检查 /proc/self/mounts 和 /proc/mounts 中的异常挂载点，检测 overlay 和 bind mount</p>
+              <span class="layer-tech">/proc/mounts / statfs / fs stat</span>
+            </div>
+          </div>
+
+          <!-- L5 -->
+          <div class="layer-node" data-layer="5">
+            <div class="layer-dot" style="--layer-color: #60B0FF;"></div>
+            <div class="glass-card layer-card" style="--layer-color: #60B0FF;">
+              <div class="layer-header">
+                <span class="layer-number">L5</span>
+                <span class="layer-name">Side-Channel Analysis</span>
+              </div>
+              <p class="layer-content">通过侧信道分析检测隐藏的 Root，包括时钟偏移、系统调用时序、缓存特征等</p>
+              <span class="layer-tech">clock_gettime / syscall timing / cache analysis</span>
+            </div>
+          </div>
+
+          <!-- L6 -->
+          <div class="layer-node" data-layer="6">
+            <div class="layer-dot" style="--layer-color: #70A0FF;"></div>
+            <div class="glass-card layer-card" style="--layer-color: #70A0FF;">
+              <div class="layer-header">
+                <span class="layer-number">L6</span>
+                <span class="layer-name">Root Daemon Detection</span>
+              </div>
+              <p class="layer-content">扫描 Root 相关守护进程，包括 su daemon、magiskd、ksud 等</p>
+              <span class="layer-tech">/proc/[pid] / ps / netstat / socket scan</span>
+            </div>
+          </div>
+
+          <!-- L7 -->
+          <div class="layer-node" data-layer="7">
+            <div class="layer-dot" style="--layer-color: #8090FF;"></div>
+            <div class="glass-card layer-card" style="--layer-color: #8090FF;">
+              <div class="layer-header">
+                <span class="layer-number">L7</span>
+                <span class="layer-name">Boot Chain Verification</span>
+              </div>
+              <p class="layer-content">验证启动链完整性，检测 dm-verity、verified boot 状态和 boot 分区篡改</p>
+              <span class="layer-tech">dm-verity / AVB / boot.img analysis</span>
+            </div>
+          </div>
+
+          <!-- L8 -->
+          <div class="layer-node" data-layer="8">
+            <div class="layer-dot" style="--layer-color: #9080FF;"></div>
+            <div class="glass-card layer-card" style="--layer-color: #9080FF;">
+              <div class="layer-header">
+                <span class="layer-number">L8</span>
+                <span class="layer-name">Magisk (mainstream + forks)</span>
+              </div>
+              <p class="layer-content">全面检测 Magisk 主流版本及其分支变体，覆盖超过 15+ 已知 Magisk 衍生版本</p>
+              <span class="layer-tech">APK signature / native libs / file paths</span>
+            </div>
+          </div>
+
+          <!-- L9 -->
+          <div class="layer-node" data-layer="9">
+            <div class="layer-dot" style="--layer-color: #9B70FF;"></div>
+            <div class="glass-card layer-card" style="--layer-color: #9B70FF;">
+              <div class="layer-header">
+                <span class="layer-number">L9</span>
+                <span class="layer-name">KernelSU</span>
+              </div>
+              <p class="layer-content">检测 KernelSU 内核级 Root 方案，包括模块管理器和内核模块特征</p>
+              <span class="layer-tech">/sys/fs/selinux / kernel module / ksud</span>
+            </div>
+          </div>
+
+          <!-- L10 -->
+          <div class="layer-node" data-layer="10">
+            <div class="layer-dot" style="--layer-color: #A560FF;"></div>
+            <div class="glass-card layer-card" style="--layer-color: #A560FF;">
+              <div class="layer-header">
+                <span class="layer-number">L10</span>
+                <span class="layer-name">APatch</span>
+              </div>
+              <p class="layer-content">检测 APatch 内核补丁方案，包括其内核模块和 AndroidPatch 特征</p>
+              <span class="layer-tech">kernel patch / APatch module / KP module</span>
+            </div>
+          </div>
+
+          <!-- L11 -->
+          <div class="layer-node" data-layer="11">
+            <div class="layer-dot" style="--layer-color: #AF50FF;"></div>
+            <div class="glass-card layer-card" style="--layer-color: #AF50FF;">
+              <div class="layer-header">
+                <span class="layer-number">L11</span>
+                <span class="layer-name">Hook Framework Detection</span>
+              </div>
+              <p class="layer-content">检测各类 Hook 框架：Frida、Xposed、EdXposed、LSPosed、ShadowHook 等</p>
+              <span class="layer-tech">PLT/GOT hook / inline hook / JNI hook detection</span>
+            </div>
+          </div>
+
+          <!-- L12 -->
+          <div class="layer-node" data-layer="12">
+            <div class="layer-dot" style="--layer-color: #B940FF;"></div>
+            <div class="glass-card layer-card" style="--layer-color: #B940FF;">
+              <div class="layer-header">
+                <span class="layer-number">L12</span>
+                <span class="layer-name">Custom ROM Identification (50+ ROMs)</span>
+              </div>
+              <p class="layer-content">识别 50+ 自定义 ROM，包括 LineageOS、Pixel Experience、crDroid 等</p>
+              <span class="layer-tech">build.prop fingerprint / ROM signatures</span>
+            </div>
+          </div>
+
+          <!-- L13 -->
+          <div class="layer-node" data-layer="13">
+            <div class="layer-dot" style="--layer-color: #C030F0;"></div>
+            <div class="glass-card layer-card" style="--layer-color: #C030F0;">
+              <div class="layer-header">
+                <span class="layer-number">L13</span>
+                <span class="layer-name">Firmware Integrity</span>
+              </div>
+              <p class="layer-content">验证固件完整性，包括系统分区哈希校验和关键文件篡改检测</p>
+              <span class="layer-tech">SHA-256 hash / partition checksum / file integrity</span>
+            </div>
+          </div>
+
+          <!-- L14 -->
+          <div class="layer-node" data-layer="14">
+            <div class="layer-dot" style="--layer-color: #C820E0;"></div>
+            <div class="glass-card layer-card" style="--layer-color: #C820E0;">
+              <div class="layer-header">
+                <span class="layer-number">L14</span>
+                <span class="layer-name">Virtual Framework Detection</span>
+              </div>
+              <p class="layer-content">检测虚拟化框架和模拟器环境，包括 VirtualXposed、VMOS、Parallel Space 等</p>
+              <span class="layer-tech">emulator fingerprint / VM detection / sandbox ID</span>
+            </div>
+          </div>
+
+          <!-- L15 -->
+          <div class="layer-node" data-layer="15">
+            <div class="layer-dot" style="--layer-color: #D010D0;"></div>
+            <div class="glass-card layer-card" style="--layer-color: #D010D0;">
+              <div class="layer-header">
+                <span class="layer-number">L15</span>
+                <span class="layer-name">Dangerous Apps Detection</span>
+              </div>
+              <p class="layer-content">扫描设备上已安装的危险应用，包括 Root 管理器、Hook 工具、模拟器等</p>
+              <span class="layer-tech">PackageManager / APK signature / app fingerprint</span>
+            </div>
+          </div>
+
+          <!-- L16 -->
+          <div class="layer-node" data-layer="16">
+            <div class="layer-dot" style="--layer-color: #D800C0;"></div>
+            <div class="glass-card layer-card" style="--layer-color: #D800C0;">
+              <div class="layer-header">
+                <span class="layer-number">L16</span>
+                <span class="layer-name">Magisk Extensions</span>
+              </div>
+              <p class="layer-content">检测 Magisk 扩展模块，包括 Shamiko、Zygisk-Assistant、MagiskHide Props Config 等</p>
+              <span class="layer-tech">module.json / Magisk module paths / overlay detection</span>
+            </div>
+          </div>
+
+          <!-- L17 -->
+          <div class="layer-node" data-layer="17">
+            <div class="layer-dot" style="--layer-color: #E000B0;"></div>
+            <div class="glass-card layer-card" style="--layer-color: #E000B0;">
+              <div class="layer-header">
+                <span class="layer-number">L17</span>
+                <span class="layer-name">Advanced Threat Detection</span>
+              </div>
+              <p class="layer-content">高级威胁检测，覆盖反调试、反虚拟化、反沙箱逃逸等对抗手段的检测</p>
+              <span class="layer-tech">anti-debug / anti-VM / evasion technique scan</span>
+            </div>
+          </div>
+
+          <!-- L18 -->
+          <div class="layer-node" data-layer="18">
+            <div class="layer-dot" style="--layer-color: #E800A0;"></div>
+            <div class="glass-card layer-card" style="--layer-color: #E800A0;">
+              <div class="layer-header">
+                <span class="layer-number">L18</span>
+                <span class="layer-name">Network Security Analysis</span>
+              </div>
+              <p class="layer-content">网络安全分析，检测代理设置、VPN 隧道、DNS 劫持和异常网络连接</p>
+              <span class="layer-tech">proxy detection / VPN scan / DNS audit / iptables</span>
+            </div>
+          </div>
+
+          <!-- L19 -->
+          <div class="layer-node" data-layer="19">
+            <div class="layer-dot" style="--layer-color: #F00090;"></div>
+            <div class="glass-card layer-card" style="--layer-color: #F00090;">
+              <div class="layer-header">
+                <span class="layer-number">L19</span>
+                <span class="layer-name">SELinux Policy Audit</span>
+              </div>
+              <p class="layer-content">SELinux 策略审计，检测策略修改、permissive 模式和自定义 SELinux 规则</p>
+              <span class="layer-tech">sestatus / sepolicy / SELinux mode / policy load</span>
+            </div>
+          </div>
+
+          <!-- L20 -->
+          <div class="layer-node" data-layer="20">
+            <div class="layer-dot" style="--layer-color: #F472B6;"></div>
+            <div class="glass-card layer-card" style="--layer-color: #F472B6;">
+              <div class="layer-header">
+                <span class="layer-number">L20</span>
+                <span class="layer-name">Process Trust Chain</span>
+              </div>
+              <p class="layer-content">进程信任链验证，从 Zygote 到应用进程的完整信任路径验证</p>
+              <span class="layer-tech">process tree / Zygote verification / trust chain</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ==========================================
+         SECTION 3: HIDING MODES
+    ========================================== -->
+    <section id="hiding" class="reveal">
+      <div style="text-align:center;">
+        <h2 class="section-title">3 模式隐藏系统</h2>
+        <p class="section-subtitle">从零副作用的纯检测到激进的游戏级隐藏，灵活适配不同场景需求</p>
+      </div>
+      <div class="mode-cards">
+        <!-- Detection Mode -->
+        <div class="glass-card mode-card reveal-stagger" style="--mode-color: #00F0FF;">
+          <div class="mode-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+              <circle cx="12" cy="12" r="3"/>
+              <line x1="1" y1="1" x2="23" y2="23" stroke-width="1.5" stroke-dasharray="3 3"/>
+            </svg>
+          </div>
+          <h3 class="mode-title">Detection Mode</h3>
+          <p class="mode-desc">仅检测不隐藏</p>
+          <p class="mode-tech-tag">零副作用 · 默认模式</p>
+        </div>
+
+        <!-- Hide Mode -->
+        <div class="glass-card mode-card reveal-stagger" style="--mode-color: #8B5CF6;">
+          <div class="mode-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              <path d="M12 8v4M12 16h.01" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <h3 class="mode-title">Hide Mode</h3>
+          <p class="mode-desc">智能隐藏 Root</p>
+          <p class="mode-tech-tag">eBPF 防火墙 · Namespace 隔离</p>
+        </div>
+
+        <!-- Game Mode -->
+        <div class="glass-card mode-card reveal-stagger" style="--mode-color: #F472B6;">
+          <div class="mode-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <line x1="6" y1="11" x2="10" y2="11"/>
+              <line x1="8" y1="9" x2="8" y2="13"/>
+              <line x1="15" y1="12" x2="15.01" y2="12"/>
+              <line x1="18" y1="10" x2="18.01" y2="10"/>
+              <path d="M17.32 5H6.68a4 4 0 00-3.978 3.59c-.006.052-.01.101-.017.152C2.604 9.416 2 14.456 2 16a3 3 0 003 3c1 0 1.5-.5 2-1l1.414-1.414A2 2 0 009.828 16h4.344a2 2 0 001.414-.586L17 14c.5.5 1 1 2 1a3 3 0 003-3c0-1.544-.604-6.584-.685-7.258-.007-.05-.011-.1-.017-.151A4 4 0 0017.32 5z"/>
+            </svg>
+          </div>
+          <h3 class="mode-title">Game Mode</h3>
+          <p class="mode-desc">激进隐藏 + 性能优化</p>
+          <p class="mode-tech-tag">进程伪装 · HWID 伪装</p>
+        </div>
+      </div>
+
+      <!-- Tech Detail Panel -->
+      <div class="hiding-tech-panel glass-card reveal-stagger">
+        <div class="tech-detail-grid">
+          <div class="tech-detail-item">
+            <h4 class="tech-detail-title">eBPF Firewall</h4>
+            <p class="tech-detail-text">基于 eBPF 的系统调用级拦截防火墙，在内核层面过滤检测请求，零延迟响应，Android 12+ 支持 BPF CO-RE 技术</p>
+          </div>
+          <div class="tech-detail-item">
+            <h4 class="tech-detail-title">Mount Namespace</h4>
+            <p class="tech-detail-text">利用 Linux Mount Namespace 隔离技术，为每个应用创建独立的挂载命名空间，彻底隐藏 Root 相关文件系统条目</p>
+          </div>
+          <div class="tech-detail-item">
+            <h4 class="tech-detail-title">LD_PRELOAD Hook</h4>
+            <p class="tech-detail-text">通过 LD_PRELOAD 机制预加载自定义库，拦截和篡改 libc 函数调用，对文件访问、进程枚举等系统调用进行透明重定向</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==========================================
+         SECTION 4: TECH HIGHLIGHTS
+    ========================================== -->
+    <section id="tech" class="reveal">
+      <div style="text-align:center;">
+        <h2 class="section-title">核心技术亮点</h2>
+        <p class="section-subtitle">融合前沿密码学、微服务架构与内核技术，构建企业级安全评估引擎</p>
+      </div>
+      <div class="tech-grid">
+        <!-- Post-Quantum Signature -->
+        <div class="glass-card tech-card reveal-stagger">
+          <div class="particle-container">
+            <div class="tech-particle" style="left:10%;bottom:0;animation-delay:0s;"></div>
+            <div class="tech-particle" style="left:25%;bottom:0;animation-delay:0.5s;"></div>
+            <div class="tech-particle" style="left:45%;bottom:0;animation-delay:1s;"></div>
+            <div class="tech-particle" style="left:65%;bottom:0;animation-delay:1.5s;"></div>
+            <div class="tech-particle" style="left:85%;bottom:0;animation-delay:2s;"></div>
+          </div>
+          <div class="tech-card-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+              <path d="M7 11V7a5 5 0 0110 0v4"/>
+              <circle cx="12" cy="16" r="1"/>
+            </svg>
+          </div>
+          <h3 class="tech-card-title">Post-Quantum Signature</h3>
+          <p class="tech-card-desc">采用 NIST 标准化的后量子密码签名算法，抵抗未来量子计算攻击，确保检测报告的不可篡改性</p>
+          <div class="tech-card-badges">
+            <span class="tech-badge">ML-DSA-65</span>
+            <span class="tech-badge">CRYSTALS-Dilithium-3</span>
+            <span class="tech-badge">NIST PQC</span>
+          </div>
+        </div>
+
+        <!-- Microservice Architecture -->
+        <div class="glass-card tech-card reveal-stagger">
+          <div class="particle-container">
+            <div class="tech-particle" style="left:15%;bottom:0;animation-delay:0.3s;background:var(--energy-purple);"></div>
+            <div class="tech-particle" style="left:35%;bottom:0;animation-delay:0.8s;background:var(--energy-purple);"></div>
+            <div class="tech-particle" style="left:55%;bottom:0;animation-delay:1.3s;background:var(--energy-purple);"></div>
+            <div class="tech-particle" style="left:75%;bottom:0;animation-delay:1.8s;background:var(--energy-purple);"></div>
+          </div>
+          <div class="tech-card-icon" style="background:rgba(139,92,246,0.08);border-color:rgba(139,92,246,0.15);">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:var(--energy-purple);">
+              <rect x="2" y="2" width="8" height="8" rx="1"/>
+              <rect x="14" y="2" width="8" height="8" rx="1"/>
+              <rect x="2" y="14" width="8" height="8" rx="1"/>
+              <rect x="14" y="14" width="8" height="8" rx="1"/>
+              <line x1="10" y1="6" x2="14" y2="6"/>
+              <line x1="10" y1="18" x2="14" y2="18"/>
+              <line x1="6" y1="10" x2="6" y2="14"/>
+              <line x1="18" y1="10" x2="18" y2="14"/>
+            </svg>
+          </div>
+          <h3 class="tech-card-title">Microservice Architecture</h3>
+          <p class="tech-card-desc">20 个独立 .so 插件组成的微服务架构，支持热加载和 YAML 驱动配置，灵活扩展检测能力</p>
+          <div class="tech-card-badges">
+            <span class="tech-badge">.so Plugin</span>
+            <span class="tech-badge">Hot-Load</span>
+            <span class="tech-badge">YAML-Driven</span>
+          </div>
+        </div>
+
+        <!-- eBPF Firewall -->
+        <div class="glass-card tech-card reveal-stagger">
+          <div class="particle-container">
+            <div class="tech-particle" style="left:20%;bottom:0;animation-delay:0.2s;"></div>
+            <div class="tech-particle" style="left:40%;bottom:0;animation-delay:0.7s;"></div>
+            <div class="tech-particle" style="left:60%;bottom:0;animation-delay:1.2s;"></div>
+            <div class="tech-particle" style="left:80%;bottom:0;animation-delay:1.7s;"></div>
+            <div class="tech-particle" style="left:50%;bottom:0;animation-delay:2.2s;"></div>
+          </div>
+          <div class="tech-card-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/>
+              <path d="M2 12h20"/>
+              <path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/>
+            </svg>
+          </div>
+          <h3 class="tech-card-title">eBPF Firewall</h3>
+          <p class="tech-card-desc">基于 eBPF 技术的系统调用拦截防火墙，在内核层面实现零延迟的检测请求过滤和响应伪造</p>
+          <div class="tech-card-badges">
+            <span class="tech-badge">Syscall Intercept</span>
+            <span class="tech-badge">Android 12+</span>
+            <span class="tech-badge">BPF CO-RE</span>
+          </div>
+        </div>
+
+        <!-- Sandbox Isolation -->
+        <div class="glass-card tech-card reveal-stagger">
+          <div class="particle-container">
+            <div class="tech-particle" style="left:12%;bottom:0;animation-delay:0.4s;background:var(--neon-pink);"></div>
+            <div class="tech-particle" style="left:32%;bottom:0;animation-delay:0.9s;background:var(--neon-pink);"></div>
+            <div class="tech-particle" style="left:52%;bottom:0;animation-delay:1.4s;background:var(--neon-pink);"></div>
+            <div class="tech-particle" style="left:72%;bottom:0;animation-delay:1.9s;background:var(--neon-pink);"></div>
+            <div class="tech-particle" style="left:90%;bottom:0;animation-delay:2.4s;background:var(--neon-pink);"></div>
+          </div>
+          <div class="tech-card-icon" style="background:rgba(244,114,182,0.08);border-color:rgba(244,114,182,0.15);">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:var(--neon-pink);">
+              <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
+              <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+              <line x1="12" y1="22.08" x2="12" y2="12"/>
+            </svg>
+          </div>
+          <h3 class="tech-card-title">Sandbox Isolation</h3>
+          <p class="tech-card-desc">三级沙箱隔离机制：诱饵隔离、轻量隔离和完全隔离，通过三副本共识确保检测结果可靠性</p>
+          <div class="tech-card-badges">
+            <span class="tech-badge">3-Replica Consensus</span>
+            <span class="tech-badge">Bait/Light/Full</span>
+            <span class="tech-badge">Namespace Isolation</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==========================================
+         SECTION 5: SCORING
+    ========================================== -->
+    <section id="scoring" class="reveal">
+      <div style="text-align:center;">
+        <h2 class="section-title">评分算法</h2>
+        <p class="section-subtitle">基于交叉层指数加权与确定性优先的多维度安全评估引擎</p>
+      </div>
+      <div class="scoring-container">
+        <div class="scoring-visual">
+          <div class="gauge-wrapper">
+            <canvas id="gauge-canvas" width="520" height="520"></canvas>
+            <div class="gauge-score">
+              <div class="gauge-number fluid-number" id="gauge-value">0</div>
+              <div class="gauge-label">Risk Score</div>
+            </div>
+          </div>
+          <div class="risk-levels">
+            <div class="risk-item">
+              <div class="risk-dot" style="background:#22C55E;box-shadow:0 0 8px rgba(34,197,94,0.5);"></div>
+              <span class="risk-name">Safe</span>
+              <span class="risk-range">0 - 10</span>
+            </div>
+            <div class="risk-item">
+              <div class="risk-dot" style="background:#EAB308;box-shadow:0 0 8px rgba(234,179,8,0.5);"></div>
+              <span class="risk-name">Low Risk</span>
+              <span class="risk-range">11 - 30</span>
+            </div>
+            <div class="risk-item">
+              <div class="risk-dot" style="background:#F97316;box-shadow:0 0 8px rgba(249,115,22,0.5);"></div>
+              <span class="risk-name">Medium Risk</span>
+              <span class="risk-range">31 - 60</span>
+            </div>
+            <div class="risk-item">
+              <div class="risk-dot" style="background:#EF4444;box-shadow:0 0 8px rgba(239,68,68,0.5);"></div>
+              <span class="risk-name">High Risk</span>
+              <span class="risk-range">61 - 100</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Scoring Principles -->
+        <div class="scoring-principles">
+          <div class="glass-card principle-card reveal-stagger">
+            <div class="principle-num">PRINCIPLE 01</div>
+            <h4 class="principle-title">交叉层指数加权</h4>
+            <p class="principle-desc">跨层检测结果进行指数级权重叠加，底层检测命中对总分的放大效应</p>
+          </div>
+          <div class="glass-card principle-card reveal-stagger">
+            <div class="principle-num">PRINCIPLE 02</div>
+            <h4 class="principle-title">确定性优先</h4>
+            <p class="principle-desc">高确定性检测结果获得更高权重，减少误报对最终评分的干扰</p>
+          </div>
+          <div class="glass-card principle-card reveal-stagger">
+            <div class="principle-num">PRINCIPLE 03</div>
+            <h4 class="principle-title">关联增强</h4>
+            <p class="principle-desc">相关检测层的命中会产生关联加分，反映真实安全威胁的复合特征</p>
+          </div>
+        </div>
+
+        <!-- Assessment Modes Table -->
+        <div class="assess-modes reveal-stagger">
+          <h3 class="assess-modes-title">评估模式</h3>
+          <table class="assess-table">
+            <thead>
+              <tr>
+                <th>模式</th>
+                <th>耗时</th>
+                <th>检测深度</th>
+                <th>适用场景</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="mode-tag">Quick</span></td>
+                <td style="font-family:var(--font-mono);">&lt; 500ms</td>
+                <td>基础 5 层</td>
+                <td>实时快速筛查</td>
+              </tr>
+              <tr>
+                <td><span class="mode-tag" style="background:rgba(139,92,246,0.08);color:var(--energy-purple);border-color:rgba(139,92,246,0.15);">Standard</span></td>
+                <td style="font-family:var(--font-mono);">2 - 5s</td>
+                <td>标准 12 层</td>
+                <td>常规安全检测</td>
+              </tr>
+              <tr>
+                <td><span class="mode-tag" style="background:rgba(244,114,182,0.08);color:var(--neon-pink);border-color:rgba(244,114,182,0.15);">Deep</span></td>
+                <td style="font-family:var(--font-mono);">10 - 30s</td>
+                <td>深度 20 层</td>
+                <td>全面安全审计</td>
+              </tr>
+              <tr>
+                <td><span class="mode-tag" style="background:rgba(239,68,68,0.08);color:#EF4444;border-color:rgba(239,68,68,0.15);">Forensic</span></td>
+                <td style="font-family:var(--font-mono);">60s+</td>
+                <td>完整取证</td>
+                <td>司法取证分析</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==========================================
+         SECTION 6: DOWNLOAD
+    ========================================== -->
+    <section id="download" class="reveal">
+      <div style="text-align:center;">
+        <h2 class="section-title">下载与安装</h2>
+        <p class="section-subtitle">多种安装方式，从预编译 APK 到源码构建，满足不同需求</p>
+      </div>
+      <div class="download-container">
+        <!-- Primary Download Card -->
+        <div class="glass-card download-primary-card reveal-stagger">
+          <div class="download-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+          </div>
+          <h3 class="download-title">APEX-ROOT v1.1.1</h3>
+          <p class="download-desc">Android 设备完整性评估工具，支持 Android 8.0+ 设备</p>
+          <button class="liquid-btn liquid-btn-primary" style="font-size:1rem;padding:1rem 2.5rem;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            下载 APK
+          </button>
+          <div class="download-info">
+            <div class="download-info-item">大小: <span>4.2 MB</span></div>
+            <div class="download-info-item">最低版本: <span>Android 8.0</span></div>
+            <div class="download-info-item">架构: <span>arm64-v8a / armeabi-v7a</span></div>
+          </div>
+        </div>
+
+        <!-- Build from Source -->
+        <div class="source-section reveal-stagger">
+          <h3>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+            从源码构建
+          </h3>
+          <div class="code-block">
+            <button class="copy-btn" id="copy-btn">Copy</button>
+            <pre><span class="comment"># Clone the repository</span>
+<span class="cmd">git clone</span> <span class="url">https://github.com/mengjinghao/root-check.git</span>
+<span class="cmd">cd</span> root-check/apex-root
+
+<span class="comment"># Build debug APK</span>
+<span class="cmd">./gradlew</span> assembleDebug</pre>
+          </div>
+        </div>
+
+        <!-- Requirements -->
+        <div class="requirements-grid reveal-stagger">
+          <div class="glass-card req-item">
+            <div class="req-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+            </div>
+            <div>
+              <div class="req-name">JDK</div>
+              <div class="req-version">17</div>
+            </div>
+          </div>
+          <div class="glass-card req-item">
+            <div class="req-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+            </div>
+            <div>
+              <div class="req-name">Android SDK</div>
+              <div class="req-version">API 34</div>
+            </div>
+          </div>
+          <div class="glass-card req-item">
+            <div class="req-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+            </div>
+            <div>
+              <div class="req-name">NDK</div>
+              <div class="req-version">28.2</div>
+            </div>
+          </div>
+          <div class="glass-card req-item">
+            <div class="req-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>
+            </div>
+            <div>
+              <div class="req-name">CMake</div>
+              <div class="req-version">3.22.1</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Links -->
+        <div class="download-links reveal-stagger" style="margin-top:2rem;">
+          <a href="https://github.com/mengjinghao/root-check/releases" target="_blank" rel="noopener" class="download-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Releases
+          </a>
+          <a href="https://github.com/mengjinghao/root-check" target="_blank" rel="noopener" class="download-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 00-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0020 4.77 5.07 5.07 0 0019.91 1S18.73.65 16 2.48a13.38 13.38 0 00-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 005 4.77a5.44 5.44 0 00-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 009 18.13V22"/></svg>
+            Documentation
+          </a>
+          <a href="#" class="download-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            Magisk Module
+          </a>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ==========================================
+       SECTION 7: FOOTER
+  ========================================== -->
+  <footer id="footer">
+    <div class="footer-inner">
+      <div class="footer-top">
+        <div class="footer-brand">
+          <div class="nav-logo">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:24px;height:24px;">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              <path d="M9 12l2 2 4-4" stroke="var(--cyber-cyan)" stroke-width="2.5"/>
+            </svg>
+            APEX-ROOT
+          </div>
+          <p class="footer-tagline">下一代 Android 安全评估引擎，融合后量子密码学、微服务架构与 eBPF 内核技术，为设备完整性保驾护航。</p>
+          <div class="footer-tech-stack">
+            <span class="footer-tech-badge">Kotlin</span>
+            <span class="footer-tech-badge">C++</span>
+            <span class="footer-tech-badge">Jetpack Compose</span>
+            <span class="footer-tech-badge">Material3</span>
+            <span class="footer-tech-badge">NDK</span>
+            <span class="footer-tech-badge">eBPF</span>
+          </div>
+        </div>
+        <div>
+          <h4 class="footer-col-title">Links</h4>
+          <ul class="footer-links">
+            <li>
+              <a href="https://github.com/mengjinghao/root-check" target="_blank" rel="noopener">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+                GitHub Repository
+              </a>
+            </li>
+            <li>
+              <a href="https://github.com/mengjinghao/root-check" target="_blank" rel="noopener">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                Documentation
+              </a>
+            </li>
+            <li>
+              <a href="https://github.com/mengjinghao/root-check/releases" target="_blank" rel="noopener">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Releases
+              </a>
+            </li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="footer-col-title">Legal</h4>
+          <ul class="footer-links">
+            <li><a href="https://github.com/mengjinghao/root-check/blob/main/LICENSE" target="_blank" rel="noopener">GPL-3.0 License</a></li>
+            <li><a href="https://github.com/mengjinghao/root-check/blob/main/docs/PRIVACY.md" target="_blank" rel="noopener">Privacy Policy</a></li>
+            <li><a href="https://github.com/mengjinghao/root-check/security" target="_blank" rel="noopener">Security Policy</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <div class="footer-copyright">
+          &copy; 2026 APEX-Root. Developed by <a href="https://github.com/mengjinghao" target="_blank" rel="noopener">MJH</a>. Licensed under <a href="https://github.com/mengjinghao/root-check/blob/main/LICENSE" target="_blank" rel="noopener">GPL-3.0</a>.
+        </div>
+        <div class="footer-privacy">
+          <a href="https://github.com/mengjinghao/root-check" target="_blank" rel="noopener">Privacy Statement</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ==========================================
+       JAVASCRIPT
+  ========================================== -->
+  <script>
+    (function() {
+      'use strict';
+
+      // ============================================
+      // 1. LOADING SCREEN
+      // ============================================
+      var loader = document.getElementById('loader');
+      var dotsContainer = document.getElementById('loader-dots');
+
+      // Create 20 dots in a circle
+      for (var i = 0; i < 20; i++) {
+        var dot = document.createElement('div');
+        dot.className = 'loader-dot';
+        var angle = (i / 20) * Math.PI * 2 - Math.PI / 2;
+        var radius = 50;
+        var x = 60 + Math.cos(angle) * radius - 3;
+        var y = 60 + Math.sin(angle) * radius - 3;
+        dot.style.left = x + 'px';
+        dot.style.top = y + 'px';
+        dotsContainer.appendChild(dot);
+      }
+
+      var dots = dotsContainer.querySelectorAll('.loader-dot');
+      var currentDot = 0;
+      var loaderStatus = document.getElementById('loader-status');
+      var statusMessages = [
+        'SCANNING LAYERS...',
+        'INITIALIZING KERNEL PROBES...',
+        'LOADING DETECTION ENGINE...',
+        'VERIFYING INTEGRITY...',
+        'SYSTEM READY'
+      ];
+      var statusIndex = 0;
+      var dotInterval = setInterval(function() {
+        if (currentDot > 0) dots[currentDot - 1].classList.remove('active');
+        if (currentDot < dots.length) {
+          dots[currentDot].classList.add('active');
+          // Update status text at key points
+          if (currentDot === 4 && statusIndex < 1) statusIndex = 1;
+          if (currentDot === 8 && statusIndex < 2) statusIndex = 2;
+          if (currentDot === 12 && statusIndex < 3) statusIndex = 3;
+          if (currentDot === 18 && statusIndex < 4) statusIndex = 4;
+          if (loaderStatus) loaderStatus.textContent = statusMessages[statusIndex];
+          currentDot++;
+        } else {
+          dots[currentDot - 1].classList.remove('active');
+          if (loaderStatus) loaderStatus.textContent = statusMessages[4];
+          clearInterval(dotInterval);
+        }
+      }, 120);
+
+      setTimeout(function() {
+        loader.classList.add('hide');
+        setTimeout(function() {
+          loader.style.display = 'none';
+        }, 800);
+      }, 3000);
+
+      // ============================================
+      // 2. CUSTOM CURSOR
+      // ============================================
+      var cursor = document.getElementById('cursor-crosshair');
+      var mouseX = -100, mouseY = -100;
+      var cursorX = -100, cursorY = -100;
+
+      document.addEventListener('mousemove', function(e) {
+        mouseX = e.clientX;
+        mouseY = e.clientY;
+        if (!cursor.classList.contains('visible')) {
+          cursor.classList.add('visible');
+        }
+      });
+
+      document.addEventListener('mouseleave', function() {
+        cursor.classList.remove('visible');
+      });
+
+      // Smooth follow with RAF
+      function updateCursor() {
+        cursorX += (mouseX - cursorX) * 0.15;
+        cursorY += (mouseY - cursorY) * 0.15;
+        cursor.style.left = cursorX + 'px';
+        cursor.style.top = cursorY + 'px';
+        requestAnimationFrame(updateCursor);
+      }
+      updateCursor();
+
+      // Click ripple
+      document.addEventListener('click', function(e) {
+        var ripple = document.createElement('div');
+        ripple.className = 'click-ripple';
+        ripple.style.left = e.clientX + 'px';
+        ripple.style.top = e.clientY + 'px';
+        document.body.appendChild(ripple);
+        setTimeout(function() { ripple.remove(); }, 600);
+      });
+
+      // Hover state for interactive elements
+      var interactiveSelectors = 'a, button, .glass-card, .liquid-btn, .mode-card, .download-link';
+      document.addEventListener('mouseover', function(e) {
+        if (e.target.closest(interactiveSelectors)) {
+          cursor.classList.add('hover-active');
+        }
+      });
+      document.addEventListener('mouseout', function(e) {
+        if (e.target.closest(interactiveSelectors)) {
+          cursor.classList.remove('hover-active');
+        }
+      });
+
+      // ============================================
+      // 3. SCROLL PROGRESS BAR
+      // ============================================
+      var progressBar = document.getElementById('scroll-progress');
+
+      function updateProgress() {
+        var scrollTop = window.scrollY;
+        var docHeight = document.documentElement.scrollHeight - window.innerHeight;
+        var progress = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
+        progressBar.style.width = progress + '%';
+      }
+
+      window.addEventListener('scroll', updateProgress, { passive: true });
+
+      // ============================================
+      // 5. GRID OVERLAY PARALLAX
+      // ============================================
+      var gridOverlay = document.getElementById('grid-overlay');
+
+      document.addEventListener('mousemove', function(e) {
+        var gx = (e.clientX / window.innerWidth - 0.5) * 10;
+        var gy = (e.clientY / window.innerHeight - 0.5) * 10;
+        gridOverlay.style.transform = 'translate3d(' + gx + 'px, ' + gy + 'px, 0)';
+      });
+
+      // ============================================
+      // 6. NAVIGATION SCROLL BEHAVIOR
+      // ============================================
+      var mainNav = document.getElementById('main-nav');
+      window.addEventListener('scroll', function() {
+        if (window.scrollY > 50) {
+          mainNav.classList.add('scrolled');
+        } else {
+          mainNav.classList.remove('scrolled');
+        }
+      }, { passive: true });
+
+      // Smooth scroll for data-scroll-to buttons
+      document.querySelectorAll('[data-scroll-to]').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          var target = this.getAttribute('data-scroll-to');
+          var el = document.querySelector(target);
+          if (el) el.scrollIntoView({ behavior: 'smooth' });
+        });
+      });
+
+      // Mobile menu
+      var hamburger = document.getElementById('hamburger-btn');
+      var mobileMenu = document.getElementById('mobile-menu');
+
+      hamburger.addEventListener('click', function() {
+        hamburger.classList.toggle('active');
+        mobileMenu.classList.toggle('open');
+      });
+
+      document.querySelectorAll('.mobile-nav-link').forEach(function(link) {
+        link.addEventListener('click', function() {
+          hamburger.classList.remove('active');
+          mobileMenu.classList.remove('open');
+        });
+      });
+
+      // ============================================
+      // 7. 3D DETECTION SPHERE (Hero Canvas)
+      // ============================================
+      var heroCanvas = document.getElementById('hero-canvas');
+      var heroCtx = heroCanvas.getContext('2d');
+      var heroW, heroH;
+
+      function resizeHeroCanvas() {
+        var hero = document.getElementById('hero');
+        heroW = hero.offsetWidth;
+        heroH = hero.offsetHeight;
+        heroCanvas.width = heroW;
+        heroCanvas.height = heroH;
+      }
+      resizeHeroCanvas();
+      window.addEventListener('resize', resizeHeroCanvas);
+
+      // Layer colors for 20 detection layers
+      var layerColors = [];
+      for (var lc = 0; lc < 20; lc++) {
+        var hue = 180 + (lc / 20) * 200;
+        layerColors.push('hsla(' + hue + ', 100%, 65%, ');
+      }
+
+      // Particles
+      var particles = [];
+      for (var pi = 0; pi < 80; pi++) {
+        var pAngle = Math.random() * Math.PI * 2;
+        var pDist = 100 + Math.random() * 200;
+        particles.push({
+          x: Math.cos(pAngle) * pDist,
+          y: Math.sin(pAngle) * pDist,
+          z: (Math.random() - 0.5) * 200,
+          vx: (Math.random() - 0.5) * 0.3,
+          vy: (Math.random() - 0.5) * 0.3,
+          vz: (Math.random() - 0.5) * 0.2,
+          size: 1 + Math.random() * 2,
+          life: Math.random()
+        });
+      }
+
+      var heroMouseX = 0, heroMouseY = 0;
+      var heroEl = document.getElementById('hero');
+      heroEl.addEventListener('mousemove', function(e) {
+        var rect = heroEl.getBoundingClientRect();
+        heroMouseX = (e.clientX - rect.left - rect.width / 2) / rect.width;
+        heroMouseY = (e.clientY - rect.top - rect.height / 2) / rect.height;
+      });
+
+      function animateHero(time) {
+        heroCtx.clearRect(0, 0, heroW, heroH);
+        var cx = heroW / 2;
+        var cy = heroH / 2;
+        var t = time * 0.001;
+
+        var rotY = t * 0.2 + heroMouseX * 0.5;
+        var rotX = heroMouseY * 0.3;
+
+        // Draw concentric arcs (20 layers)
+        for (var ai = 0; ai < 20; ai++) {
+          var aradius = 80 + ai * 8;
+          var startAngle = rotY + (ai * 0.15);
+          var endAngle = startAngle + Math.PI * (0.8 + Math.sin(t + ai * 0.3) * 0.2);
+
+          heroCtx.beginPath();
+          heroCtx.arc(cx, cy, aradius, startAngle, endAngle);
+          heroCtx.strokeStyle = layerColors[ai] + (0.3 + Math.sin(t * 0.5 + ai * 0.3) * 0.15) + ')';
+          heroCtx.lineWidth = 2.5;
+          heroCtx.stroke();
+
+          // Second arc on opposite side
+          var startAngle2 = startAngle + Math.PI;
+          var endAngle2 = startAngle2 + Math.PI * (0.5 + Math.cos(t + ai * 0.2) * 0.2);
+          heroCtx.beginPath();
+          heroCtx.arc(cx, cy, aradius, startAngle2, endAngle2);
+          heroCtx.strokeStyle = layerColors[ai] + '0.15)';
+          heroCtx.lineWidth = 2;
+          heroCtx.stroke();
+
+          // Connecting lines between layers (every 5 layers)
+          if (ai > 0 && ai % 5 === 0) {
+            var connAngle1 = rotY + ai * 0.15;
+            var innerR = 80 + (ai - 5) * 8;
+            var outerR = aradius;
+            heroCtx.beginPath();
+            heroCtx.moveTo(cx + Math.cos(connAngle1) * innerR, cy + Math.sin(connAngle1) * innerR);
+            heroCtx.lineTo(cx + Math.cos(connAngle1) * outerR, cy + Math.sin(connAngle1) * outerR);
+            heroCtx.strokeStyle = layerColors[ai] + '0.12)';
+            heroCtx.lineWidth = 1;
+            heroCtx.stroke();
+
+            var connAngle2 = connAngle1 + Math.PI;
+            heroCtx.beginPath();
+            heroCtx.moveTo(cx + Math.cos(connAngle2) * innerR, cy + Math.sin(connAngle2) * innerR);
+            heroCtx.lineTo(cx + Math.cos(connAngle2) * outerR, cy + Math.sin(connAngle2) * outerR);
+            heroCtx.strokeStyle = layerColors[ai] + '0.08)';
+            heroCtx.stroke();
+          }
+        }
+
+        // Scanning ring effect
+        var scanRingRadius = 80 + ((t * 30) % (20 * 8));
+        var scanRingAlpha = 0.6 - ((t * 30) % (20 * 8)) / (20 * 8) * 0.6;
+        heroCtx.beginPath();
+        heroCtx.arc(cx, cy, scanRingRadius, rotY, rotY + Math.PI * 1.5);
+        heroCtx.strokeStyle = 'rgba(0, 240, 255, ' + Math.max(0, scanRingAlpha) + ')';
+        heroCtx.lineWidth = 3;
+        heroCtx.stroke();
+
+        // Draw and update particles
+        for (var pj = 0; pj < particles.length; pj++) {
+          var p = particles[pj];
+          p.x += p.vx;
+          p.y += p.vy;
+          p.z += p.vz;
+
+          var pdist = Math.sqrt(p.x * p.x + p.y * p.y + p.z * p.z);
+          if (pdist > 5) {
+            p.vx -= (p.x / pdist) * 0.02;
+            p.vy -= (p.y / pdist) * 0.02;
+            p.vz -= (p.z / pdist) * 0.01;
+          }
+
+          if (pdist < 50) {
+            p.vx += (Math.random() - 0.5) * 0.5;
+            p.vy += (Math.random() - 0.5) * 0.5;
+          }
+
+          var perspective = 400;
+          var scale = perspective / (perspective + p.z);
+          var ppx = cx + p.x * scale * Math.cos(rotY) - p.y * scale * Math.sin(rotY) * 0.3;
+          var ppy = cy + p.y * scale * 0.8 + p.z * scale * 0.2;
+          var psize = p.size * scale;
+
+          var palpha = Math.max(0, Math.min(0.6, (1 - pdist / 300) * 0.6));
+          heroCtx.beginPath();
+          heroCtx.arc(ppx, ppy, Math.max(0.5, psize), 0, Math.PI * 2);
+          heroCtx.fillStyle = 'rgba(0, 240, 255, ' + palpha + ')';
+          heroCtx.fill();
+        }
+
+        // Center glow with pulsing
+        var glowPulse = 0.08 + Math.sin(t * 2) * 0.04;
+        var gradient = heroCtx.createRadialGradient(cx, cy, 0, cx, cy, 120);
+        gradient.addColorStop(0, 'rgba(0, 240, 255, ' + glowPulse + ')');
+        gradient.addColorStop(0.4, 'rgba(139, 92, 246, ' + (glowPulse * 0.4) + ')');
+        gradient.addColorStop(1, 'transparent');
+        heroCtx.beginPath();
+        heroCtx.arc(cx, cy, 120, 0, Math.PI * 2);
+        heroCtx.fillStyle = gradient;
+        heroCtx.fill();
+
+        requestAnimationFrame(animateHero);
+      }
+      requestAnimationFrame(animateHero);
+
+      // ============================================
+      // 8. SCROLL-TRIGGERED ANIMATIONS
+      // ============================================
+      var revealElements = document.querySelectorAll('.reveal, .reveal-stagger');
+
+      var sectionObserver = new IntersectionObserver(function(entries) {
+        entries.forEach(function(entry) {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+          }
+        });
+      }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+
+      revealElements.forEach(function(el, index) {
+        if (el.classList.contains('reveal-stagger')) {
+          el.style.transitionDelay = (index % 4) * 0.12 + 's';
+        }
+        sectionObserver.observe(el);
+      });
+
+      // Layer timeline scroll animation
+      var layerNodes = document.querySelectorAll('.layer-node');
+      var layerObserver = new IntersectionObserver(function(entries) {
+        entries.forEach(function(entry) {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('active');
+          }
+        });
+      }, { threshold: 0.3, rootMargin: '0px 0px -100px 0px' });
+
+      layerNodes.forEach(function(node) {
+        layerObserver.observe(node);
+      });
+
+      // ============================================
+      // 9. LIQUID BUTTON EFFECT
+      // ============================================
+      document.querySelectorAll('.liquid-btn').forEach(function(btn) {
+        btn.addEventListener('mousemove', function(e) {
+          var rect = btn.getBoundingClientRect();
+          var bx = ((e.clientX - rect.left) / rect.width) * 100;
+          var by = ((e.clientY - rect.top) / rect.height) * 100;
+          btn.style.setProperty('--x', bx + '%');
+          btn.style.setProperty('--y', by + '%');
+        });
+      });
+
+      // ============================================
+      // 10. GAUGE ANIMATION
+      // ============================================
+      var gaugeCanvas = document.getElementById('gauge-canvas');
+      var gaugeCtx = gaugeCanvas.getContext('2d');
+      var gaugeValueEl = document.getElementById('gauge-value');
+      var gaugeAnimated = false;
+      var targetScore = 12;
+
+      function drawGauge(progress) {
+        var w = gaugeCanvas.width;
+        var h = gaugeCanvas.height;
+        var gcx = w / 2;
+        var gcy = h / 2;
+        var outerR = Math.max(1, w / 2 - 30);
+        var lineW = 12;
+
+        gaugeCtx.clearRect(0, 0, w, h);
+
+        // Background arc
+        gaugeCtx.beginPath();
+        gaugeCtx.arc(gcx, gcy, outerR, 0.75 * Math.PI, 0.25 * Math.PI);
+        gaugeCtx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+        gaugeCtx.lineWidth = lineW;
+        gaugeCtx.lineCap = 'round';
+        gaugeCtx.stroke();
+
+        // Colored segments background
+        var segments = [
+          { start: 0, end: 0.1, color: '#22C55E' },
+          { start: 0.1, end: 0.3, color: '#EAB308' },
+          { start: 0.3, end: 0.6, color: '#F97316' },
+          { start: 0.6, end: 1.0, color: '#EF4444' }
+        ];
+
+        var totalAngle = 1.5 * Math.PI;
+        var startOffset = 0.75 * Math.PI;
+
+        for (var si = 0; si < segments.length; si++) {
+          var seg = segments[si];
+          var segStart = startOffset + seg.start * totalAngle;
+          var segEnd = startOffset + seg.end * totalAngle;
+
+          gaugeCtx.beginPath();
+          gaugeCtx.arc(gcx, gcy, outerR, segStart, segEnd);
+          gaugeCtx.strokeStyle = seg.color + '30';
+          gaugeCtx.lineWidth = lineW;
+          gaugeCtx.lineCap = 'butt';
+          gaugeCtx.stroke();
+        }
+
+        // Active progress arc
+        var progressAngle = startOffset + progress * totalAngle;
+        var activeEnd = Math.min(progressAngle, startOffset + totalAngle);
+
+        if (progress > 0) {
+          var gradient = gaugeCtx.createLinearGradient(0, h, w, 0);
+          gradient.addColorStop(0, '#22C55E');
+          gradient.addColorStop(0.3, '#EAB308');
+          gradient.addColorStop(0.6, '#F97316');
+          gradient.addColorStop(1, '#EF4444');
+
+          gaugeCtx.beginPath();
+          gaugeCtx.arc(gcx, gcy, outerR, startOffset, activeEnd);
+          gaugeCtx.strokeStyle = gradient;
+          gaugeCtx.lineWidth = lineW;
+          gaugeCtx.lineCap = 'round';
+          gaugeCtx.stroke();
+
+          // Glow at tip
+          var glowColor = '#22C55E';
+          if (progress > 0.1) glowColor = '#EAB308';
+          if (progress > 0.3) glowColor = '#F97316';
+          if (progress > 0.6) glowColor = '#EF4444';
+
+          gaugeCtx.save();
+          gaugeCtx.shadowColor = glowColor;
+          gaugeCtx.shadowBlur = 20;
+          gaugeCtx.beginPath();
+          gaugeCtx.arc(gcx, gcy, outerR, Math.max(startOffset, activeEnd - 0.1), activeEnd);
+          gaugeCtx.strokeStyle = glowColor;
+          gaugeCtx.lineWidth = lineW;
+          gaugeCtx.lineCap = 'round';
+          gaugeCtx.stroke();
+          gaugeCtx.restore();
+        }
+
+        // Tick marks
+        for (var ti = 0; ti <= 10; ti++) {
+          var tAngle = startOffset + (ti / 10) * totalAngle;
+          var innerTick = outerR - lineW / 2 - 8;
+          var outerTick = outerR - lineW / 2 - 2;
+          gaugeCtx.beginPath();
+          gaugeCtx.moveTo(gcx + Math.cos(tAngle) * innerTick, gcy + Math.sin(tAngle) * innerTick);
+          gaugeCtx.lineTo(gcx + Math.cos(tAngle) * outerTick, gcy + Math.sin(tAngle) * outerTick);
+          gaugeCtx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+          gaugeCtx.lineWidth = 1;
+          gaugeCtx.stroke();
+        }
+      }
+
+      function animateGauge() {
+        if (gaugeAnimated) return;
+        gaugeAnimated = true;
+
+        var targetProgress = targetScore / 100;
+        var duration = 2000;
+        var startTime = performance.now();
+
+        function step(now) {
+          var elapsed = now - startTime;
+          var t = Math.min(elapsed / duration, 1);
+          var eased = 1 - Math.pow(1 - t, 3);
+          var current = eased * targetProgress;
+
+          drawGauge(current);
+          gaugeValueEl.textContent = Math.round(eased * targetScore);
+
+          if (t < 1) {
+            requestAnimationFrame(step);
+          }
+        }
+        requestAnimationFrame(step);
+      }
+
+      var gaugeSection = document.getElementById('scoring');
+      var gaugeObserver = new IntersectionObserver(function(entries) {
+        if (entries[0].isIntersecting) {
+          animateGauge();
+          gaugeObserver.unobserve(gaugeSection);
+        }
+      }, { threshold: 0.3 });
+      gaugeObserver.observe(gaugeSection);
+
+      // Initial gauge draw
+      drawGauge(0);
+
+      // ============================================
+      // 11. MORPH CARD EFFECT
+      // ============================================
+      document.querySelectorAll('.mode-card').forEach(function(card) {
+        card.addEventListener('mouseenter', function() {
+          this.style.borderRadius = '24px 16px 24px 16px';
+        });
+        card.addEventListener('mouseleave', function() {
+          this.style.borderRadius = '20px';
+        });
+      });
+
+      // ============================================
+      // 12. COPY BUTTON
+      // ============================================
+      var copyBtn = document.getElementById('copy-btn');
+      if (copyBtn) {
+        copyBtn.addEventListener('click', function() {
+          var code = 'git clone https://github.com/mengjinghao/root-check.git\ncd root-check/apex-root\n./gradlew assembleDebug';
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(code).then(function() {
+              copyBtn.textContent = 'Copied!';
+              setTimeout(function() { copyBtn.textContent = 'Copy'; }, 2000);
+            }).catch(function() {
+              copyBtn.textContent = 'Failed';
+              setTimeout(function() { copyBtn.textContent = 'Copy'; }, 2000);
+            });
+          }
+        });
+      }
+
+      // ============================================
+      // 13. ACTIVE NAV LINK HIGHLIGHT
+      // ============================================
+      var sections = document.querySelectorAll('section[id]');
+      var navLinks = document.querySelectorAll('.nav-links a');
+
+      var activeLinkObserver = new IntersectionObserver(function(entries) {
+        entries.forEach(function(entry) {
+          if (entry.isIntersecting) {
+            var id = entry.target.getAttribute('id');
+            navLinks.forEach(function(link) {
+              link.style.color = '';
+              if (link.getAttribute('href') === '#' + id) {
+                link.style.color = 'var(--cyber-cyan)';
+              }
+            });
+          }
+        });
+      }, { threshold: 0.3, rootMargin: '-100px 0px -50% 0px' });
+
+      sections.forEach(function(section) {
+        activeLinkObserver.observe(section);
+      });
+
+      // Card hover tracking
+      document.querySelectorAll('.glass-card').forEach(function(card) {
+        card.addEventListener('mousemove', function(e) {
+          var rect = card.getBoundingClientRect();
+          var hx = ((e.clientX - rect.left) / rect.width) * 100;
+          var hy = ((e.clientY - rect.top) / rect.height) * 100;
+          card.style.setProperty('--hx', hx + '%');
+          card.style.setProperty('--hy', hy + '%');
+        });
+      });
+
+    })();
+  </script>
+
+</body>
+</html>
