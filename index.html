@@ -1826,43 +1826,50 @@
       filter: url(#metaball-filter);
       pointer-events: none;
       overflow: hidden;
+      opacity: 0.42;
     }
 
     .metaball {
       position: absolute;
       border-radius: 50%;
       will-change: transform;
+      mix-blend-mode: screen;
     }
 
     @keyframes mb-float-1 {
-      0%, 100% { transform: translate(10vw, 20vh); }
-      25% { transform: translate(60vw, 10vh); }
-      50% { transform: translate(40vw, 60vh); }
-      75% { transform: translate(15vw, 50vh); }
+      0%, 100% { transform: translate(8vw, 18vh) scale(1); }
+      20% { transform: translate(55vw, 8vh) scale(1.15); }
+      40% { transform: translate(38vw, 58vh) scale(0.9); }
+      60% { transform: translate(72vw, 42vh) scale(1.1); }
+      80% { transform: translate(12vw, 48vh) scale(0.95); }
     }
     @keyframes mb-float-2 {
-      0%, 100% { transform: translate(70vw, 30vh); }
-      25% { transform: translate(20vw, 70vh); }
-      50% { transform: translate(80vw, 50vh); }
-      75% { transform: translate(50vw, 20vh); }
+      0%, 100% { transform: translate(68vw, 28vh) scale(1); }
+      20% { transform: translate(18vw, 68vh) scale(1.2); }
+      40% { transform: translate(78vw, 48vh) scale(0.85); }
+      60% { transform: translate(42vw, 18vh) scale(1.1); }
+      80% { transform: translate(58vw, 72vh) scale(0.95); }
     }
     @keyframes mb-float-3 {
-      0%, 100% { transform: translate(30vw, 70vh); }
-      25% { transform: translate(80vw, 40vh); }
-      50% { transform: translate(10vw, 30vh); }
-      75% { transform: translate(60vw, 80vh); }
+      0%, 100% { transform: translate(28vw, 68vh) scale(1); }
+      20% { transform: translate(78vw, 38vh) scale(1.15); }
+      40% { transform: translate(8vw, 28vh) scale(0.9); }
+      60% { transform: translate(58vw, 78vh) scale(1.1); }
+      80% { transform: translate(82vw, 62vh) scale(0.95); }
     }
     @keyframes mb-float-4 {
-      0%, 100% { transform: translate(50vw, 10vh); }
-      25% { transform: translate(10vw, 60vh); }
-      50% { transform: translate(70vw, 80vh); }
-      75% { transform: translate(30vw, 40vh); }
+      0%, 100% { transform: translate(48vw, 8vh) scale(1); }
+      20% { transform: translate(8vw, 58vh) scale(1.15); }
+      40% { transform: translate(68vw, 78vh) scale(0.9); }
+      60% { transform: translate(28vw, 38vh) scale(1.1); }
+      80% { transform: translate(82vw, 22vh) scale(0.95); }
     }
     @keyframes mb-float-5 {
-      0%, 100% { transform: translate(85vw, 60vh); }
-      25% { transform: translate(40vw, 20vh); }
-      50% { transform: translate(20vw, 50vh); }
-      75% { transform: translate(75vw, 90vh); }
+      0%, 100% { transform: translate(82vw, 58vh) scale(1); }
+      20% { transform: translate(38vw, 18vh) scale(1.2); }
+      40% { transform: translate(18vw, 48vh) scale(0.85); }
+      60% { transform: translate(72vw, 88vh) scale(1.1); }
+      80% { transform: translate(52vw, 32vh) scale(0.95); }
     }
 
     /* ============================================
@@ -1988,8 +1995,8 @@
   <svg style="position:absolute;width:0;height:0;" aria-hidden="true">
     <defs>
       <filter id="metaball-filter">
-        <feGaussianBlur in="SourceGraphic" stdDeviation="40" result="blur"/>
-        <feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 60 -30" result="glow"/>
+        <feGaussianBlur in="SourceGraphic" stdDeviation="42" result="blur"/>
+        <feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 5 -1.4" result="glow"/>
       </filter>
       <filter id="liquid">
         <feTurbulence type="fractalNoise" baseFrequency="0.015" numOctaves="3" result="turbulence" seed="2">
@@ -2027,11 +2034,11 @@
   <!-- Metaball Canvas Background -->
   <canvas id="metaball-canvas"></canvas>
   <div id="metaball-container">
-    <div class="metaball" style="width:300px;height:300px;background:radial-gradient(circle,rgba(139,92,246,0.6),transparent);animation:mb-float-1 20s ease-in-out infinite;"></div>
-    <div class="metaball" style="width:400px;height:400px;background:radial-gradient(circle,rgba(0,240,255,0.5),transparent);animation:mb-float-2 25s ease-in-out infinite;"></div>
-    <div class="metaball" style="width:250px;height:250px;background:radial-gradient(circle,rgba(139,92,246,0.5),transparent);animation:mb-float-3 18s ease-in-out infinite;"></div>
-    <div class="metaball" style="width:350px;height:350px;background:radial-gradient(circle,rgba(0,240,255,0.4),transparent);animation:mb-float-4 22s ease-in-out infinite;"></div>
-    <div class="metaball" style="width:280px;height:280px;background:radial-gradient(circle,rgba(139,92,246,0.4),transparent);animation:mb-float-5 30s ease-in-out infinite;"></div>
+    <div class="metaball" style="width:240px;height:240px;background:radial-gradient(circle,rgba(139,92,246,0.22),transparent 78%);animation:mb-float-1 22s ease-in-out infinite;"></div>
+    <div class="metaball" style="width:300px;height:300px;background:radial-gradient(circle,rgba(0,240,255,0.18),transparent 78%);animation:mb-float-2 28s ease-in-out infinite;"></div>
+    <div class="metaball" style="width:200px;height:200px;background:radial-gradient(circle,rgba(139,92,246,0.2),transparent 78%);animation:mb-float-3 20s ease-in-out infinite;"></div>
+    <div class="metaball" style="width:260px;height:260px;background:radial-gradient(circle,rgba(0,240,255,0.15),transparent 78%);animation:mb-float-4 25s ease-in-out infinite;"></div>
+    <div class="metaball" style="width:220px;height:220px;background:radial-gradient(circle,rgba(139,92,246,0.17),transparent 78%);animation:mb-float-5 32s ease-in-out infinite;"></div>
   </div>
 
   <!-- Grid Overlay -->
